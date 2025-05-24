@@ -18,41 +18,29 @@ const PORT = process.env.PORT || 3000;
 // ======================
 // Конфигурация базы данных
 // ======================
-const getDbConfig = () => {
-  // Конфигурация для Railway
-  if (
-    process.env.RAILWAY_ENVIRONMENT === "production" ||
-    process.env.MYSQLHOST
-  ) {
-    return {
-      host: process.env.MYSQLHOST || "mysql.railway.internal",
-      user: process.env.MYSQLUSER || "root",
-      password: process.env.MYSQLPASSWORD,
-      database: process.env.MYSQLDATABASE || "railway",
-      port: parseInt(process.env.MYSQLPORT) || 3306,
-      waitForConnections: true,
-      connectionLimit: 10,
-      connectTimeout: 10000,
-      ssl:
-        process.env.MYSQL_SSL === "true" ? { rejectUnauthorized: false } : null,
-      multipleStatements: true,
-    };
-  }
-
-  // Локальная разработка
-  // return {
-  //   host: process.env.DB_HOST || "localhost",
-  //   user: process.env.DB_USER || "root",
-  //   password: process.env.DB_PASSWORD || "",
-  //   database: process.env.DB_NAME || "testforge",
-  //   port: parseInt(process.env.DB_PORT) || 3306,
-  //   waitForConnections: true,
-  //   connectionLimit: 10,
-  //   connectTimeout: 10000,
-  // };
+const dbConfig = {
+  host: process.env.MYSQLHOST || "mysql.railway.internal",
+  user: process.env.MYSQLUSER || "root",
+  password: process.env.MYSQLPASSWORD || "mhCdebLvqfawRlcserQlwxboFOeRdOWX",
+  database: process.env.MYSQLDATABASE || "railway",
+  port: parseInt(process.env.MYSQLPORT) || 3306,
+  ssl:
+    process.env.NODE_ENV === "production"
+      ? {
+          rejectUnauthorized: false,
+          minVersion: "TLSv1.2",
+        }
+      : null,
+  waitForConnections: true,
+  connectionLimit: 10,
+  connectTimeout: 10000,
+  flags: ["-FOUND_ROWS"],
 };
 
-const dbConfig = getDbConfig();
+console.log("Актуальная конфигурация БД:", {
+  ...dbConfig,
+  password: "***", // Не логируем реальный пароль
+});
 const db = mysql.createPool(dbConfig);
 
 // Логирование конфигурации
@@ -77,10 +65,7 @@ app.use(morgan(process.env.NODE_ENV === "production" ? "combined" : "dev"));
 app.use(express.static(path.join(__dirname, "public")));
 app.use(
   cors({
-    origin:
-      process.env.NODE_ENV === "production"
-        ? process.env.FRONTEND_URL
-        : "http://localhost:3000",
+    origin: ["http://localhost:3000", "https://testforge1.up.railway.app"],
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"],
@@ -268,55 +253,33 @@ async function runMigrations() {
 // Проверка подключения к БД
 // ======================
 const checkDBConnection = async () => {
-  console.log("Попытка подключения с параметрами:", {
-    host: dbConfig.host,
-    port: dbConfig.port,
-    database: dbConfig.database,
-    user: dbConfig.user,
-    ssl: dbConfig.ssl ? "enabled" : "disabled",
-  });
+  console.log("Попытка подключения с параметрами:", dbConfig);
 
   let conn;
   try {
-    conn = await mysql.createConnection({
-      host: dbConfig.host,
-      port: dbConfig.port,
-      user: dbConfig.user,
-      password: dbConfig.password,
-      database: dbConfig.database,
-      ssl: dbConfig.ssl,
-      connectTimeout: 10000,
-    });
-
+    conn = await mysql.createConnection(dbConfig); // Используем основную конфигурацию
     await conn.query("SELECT 1");
     console.log("✅ Проверка подключения успешна");
-
-    // Дополнительная проверка доступности таблиц
-    const [tables] = await conn.query("SHOW TABLES LIKE 'migrations'");
-    if (tables.length === 0) {
-      console.log("⚠️ Таблица migrations не найдена, будут выполнены миграции");
-    }
   } catch (err) {
     console.error("❌ Критическая ошибка подключения:", {
       message: err.message,
       code: err.code,
-      errno: err.errno,
-      sqlState: err.sqlState,
+      config: dbConfig,
       stack: err.stack,
     });
-
-    console.error("Текущая конфигурация DB:", {
-      host: dbConfig.host,
-      port: dbConfig.port,
-      database: dbConfig.database,
-      user: dbConfig.user,
-      password: dbConfig.password ? "***" : "not set",
-      ssl: dbConfig.ssl,
-    });
-
     process.exit(1);
   } finally {
     if (conn) await conn.end();
+  }
+};
+
+const checkTables = async () => {
+  try {
+    await runMigrations();
+    console.log("✅ Все таблицы успешно проверены/созданы");
+  } catch (err) {
+    console.error("❌ Критическая ошибка инициализации БД:", err);
+    throw err;
   }
 };
 
