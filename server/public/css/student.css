@@ -1,0 +1,233 @@
+#test-list.test-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
+  padding: 1rem;
+  justify-content: center;
+  max-width: 80vw;
+  margin: 0 auto;
+}
+
+.test-card {
+  background-color: var(--modal-bg);
+  border-radius: 8px;
+  padding: 1.2rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+  cursor: pointer;
+  border: 1px solid var(--primary);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.test-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+  border-color: var(--accent);
+}
+
+.test-card h3 {
+  margin: 0 0 0.8rem 0;
+  color: var(--primary);
+  font-size: 3vmin;
+  word-break: break-all;
+}
+
+.test-card .test-meta {
+  display: flex;
+  justify-content: space-between;
+  margin-top: auto;
+  font-size: 0.9rem;
+  color: var(--text);
+  opacity: 0.8;
+}
+
+.test-card .test-actions {
+  margin-top: 1rem;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.test-card .test-actions button {
+  padding: 0.4rem 0.8rem;
+  border: none;
+  background: var(--accent);
+  color: #fff;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.test-card .test-actions button:hover {
+  background: #e98fad;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.test-card {
+  animation: fadeIn 0.4s ease-out forwards;
+}
+
+.test-list ul {
+  list-style-type: none;
+  padding: 0;
+  color: var(--text);
+}
+
+.test-list ul li {
+  padding: 0.8rem;
+  background-color: var(--modal-bg);
+  margin-bottom: 1rem;
+  border-radius: 4px;
+}
+
+.test-list ul li button {
+  margin-left: 0.5rem;
+  padding: 0.4rem 0.8rem;
+  border: none;
+  background: var(--accent);
+  color: #fff;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.test-list ul li button:hover {
+  background: #e98fad;
+}
+
+button {
+  margin-left: 0.5rem;
+  padding: 0.4rem 0.8rem;
+  border: none;
+  background: var(--accent);
+  color: #fff;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+button:hover {
+  background: #e98fad;
+}
+
+.result-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 70vh;
+  padding: 1rem;
+}
+
+.test-result {
+  background-color: var(--modal-bg);
+  border-radius: 12px;
+  padding: 2rem;
+  width: 100%;
+  max-width: 500px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  border: 1px solid var(--primary);
+}
+
+.test-result h3 {
+  margin-top: 0;
+  color: var(--primary);
+}
+
+.test-result .score {
+  font-size: 1.8rem;
+  font-weight: bold;
+  margin: 1rem 0;
+  color: var(--accent);
+}
+
+.test-result .result-comment {
+  font-size: 1.1rem;
+  margin-bottom: 0;
+}
+
+.back-button,
+.submit-button {
+  margin: 1rem 0;
+  padding: 0.6rem 1.2rem;
+  background-color: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  font-size: 4vmin;
+}
+
+.back-button:hover,
+.submit-button:hover {
+  background-color: var(--accent);
+}
+
+.question-text {
+  font-size: 4vmin;
+  padding-bottom: 0.5rem;
+}
+
+.answers-container {
+  font-size: 3vmin;
+}
+
+.question-block {
+  display: flex;
+  width: 50vw;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.answers-container {
+  display: flex;
+  gap: 10px;
+  flex-direction: column;
+  width: 50vw;
+  align-items: center;
+  justify-content: center;
+}
+
+.answer-option {
+  display: flex;
+  width: 20vw;
+  justify-content: space-between;
+  flex-direction: row-reverse;
+}
+
+#test-form {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.test-author {
+  margin: 0 0 0.8rem 0;
+  color: var(--primary);
+  font-size: 1.5vmin;
+  font-weight: bold;
+}
+
+.text-answer {
+  width: 20vw;
+  resize: none;
+  font-size: 3vmin;
+  height: 1.5vmax;
+  display: flex;
+  align-items: center;
+}

@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Админ Панель - TestForge</title>
+    <link rel="stylesheet" href="./css/styles.css" />
+    <link rel="stylesheet" href="./css/admin.css" />
+  </head>
+  <body>
+    <header>
+      <h1>Панель Администратора</h1>
+      <nav>
+        <button id="theme-toggle">🌞</button>
+        <a href="student.html"><button>Страница студента</button></a>
+        <a href="index.html"><button>Выход</button></a>
+      </nav>
+    </header>
+
+    <section class="admin-panel">
+      <div class="users">
+        <div class="admin-only">
+          <div class="full_admin">
+            <div>
+              <h2>Пользователи</h2>
+
+              <!-- Форма добавления пользователя -->
+              <form id="user-form">
+                <input type="text" id="username" placeholder="Имя" required />
+                <input
+                  type="password"
+                  id="password"
+                  placeholder="Пароль"
+                  required
+                />
+                <label for="role">Роль:</label>
+                <select id="role" required>
+                  <option value="" disabled selected>Роль</option>
+                  <option value="student">Студент</option>
+                  <option value="teacher">Преподаватель</option>
+                  <option value="admin">Администратор</option>
+                </select>
+                <label for="group">Группа:</label>
+                <select id="group">
+                  <option value="">Без группы</option>
+                </select>
+
+                <button class="btn" type="submit">Добавить</button>
+              </form>
+            </div>
+            <div class="admin-section" id="groups-section">
+              <button id="manage-groups-btn" class="btn">Список Групп</button>
+            </div>
+          </div>
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Имя</th>
+                  <th>Роль</th>
+                  <th>Группа</th>
+                  <th>Действия</th>
+                </tr>
+              </thead>
+              <tbody id="user-table-body">
+                <!-- Пользователи будут добавлены через JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div class="tests">
+        <h2>Тесты</h2>
+        <button class="btn" id="add-test-btn">Добавить тест</button>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Название</th>
+                <th>Автор</th>
+                <th>Группа</th>
+                <th>Действия</th>
+              </tr>
+            </thead>
+            <tbody id="test-table-body">
+              <!-- Тесты будут добавлены через JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <script src="./js/script.js"></script>
+    <script src="./js/admin-users.js"></script>
+    <script src="./js/admin-tests.js"></script>
+  </body>
+</html>
