@@ -1,390 +1,437 @@
-document.addEventListener("DOMContentLoaded", () => {
-  const currentUser = JSON.parse(localStorage.getItem("user")) || {};
-  const isAdmin = currentUser.role === "admin";
+document.addEventListener("DOMContentLoaded", async () => {
+  try {
+    // 1. Проверка аутентификации и прав
+    const authToken = getAuthToken();
+    if (!authToken) {
+      redirectToLogin();
+      return;
+    }
 
-  // Скрываем административные разделы
-  document.querySelectorAll(".admin-only").forEach((el) => {
-    el.style.display = isAdmin ? "" : "none";
-  });
+    const currentUser = getCurrentUser();
+    if (!currentUser || currentUser.role !== "admin") {
+      showAccessDenied();
+      return;
+    }
 
-  // Если пользователь не админ - прекращаем выполнение
-  if (!isAdmin) {
-    console.log("Доступ к административным функциям запрещен");
-    return;
+    // 2. Инициализация интерфейса
+    initUI(currentUser);
+
+    // 3. Загрузка данных
+    await Promise.all([loadUsers(authToken), loadGroups(authToken)]);
+
+    // 4. Инициализация админ-панели
+    new AdminPanel(authToken, currentUser);
+  } catch (error) {
+    console.error("Ошибка инициализации:", error);
+    showError("Произошла ошибка при загрузке страницы");
   }
+});
 
-  const userTableBody = document.getElementById("user-table-body");
-  const userForm = document.getElementById("user-form");
-  const groupSelect = document.getElementById("group");
-  const roleSelect = document.getElementById("role");
+// ======================
+// Основные функции
+// ======================
 
-  // Получаем токен
-  const token =
+function getAuthToken() {
+  return (
     localStorage.getItem("token") ||
     document.cookie
       .split("; ")
       .find((row) => row.startsWith("token="))
-      ?.split("=")[1];
+      ?.split("=")[1]
+  );
+}
 
-  // === Загрузка пользователей ===
-  async function loadUsers() {
-    try {
-      const res = await fetch("/api/users", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      });
+function getCurrentUser() {
+  try {
+    return JSON.parse(localStorage.getItem("user")) || null;
+  } catch {
+    return null;
+  }
+}
 
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.message || "Ошибка загрузки пользователей");
-      }
+function redirectToLogin() {
+  window.location.href = "/login.html";
+}
 
-      const users = await res.json();
-      renderUsers(users);
-    } catch (err) {
-      console.error("Ошибка загрузки пользователей:", err);
-      alert("Ошибка: " + err.message);
+function showAccessDenied() {
+  alert("Доступ запрещен. Требуются права администратора.");
+  document.querySelectorAll(".admin-only").forEach((el) => {
+    el.style.display = "none";
+  });
+}
+
+function initUI(user) {
+  // Настройка интерфейса в зависимости от роли
+  document.querySelectorAll(".admin-only").forEach((el) => {
+    el.style.display = user.role === "admin" ? "" : "none";
+  });
+}
+
+// ======================
+// Работа с пользователями
+// ======================
+
+async function loadUsers(token) {
+  try {
+    const response = await fetch("/api/users", {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+    });
+
+    if (!response.ok) {
+      throw new Error(await getErrorMessage(response));
     }
+
+    const users = await response.json();
+    renderUsers(users);
+    setupUserDeletionHandlers(token);
+  } catch (error) {
+    console.error("Ошибка загрузки пользователей:", error);
+    showError(`Ошибка загрузки пользователей: ${error.message}`);
+  }
+}
+
+function renderUsers(users) {
+  const tbody = document.getElementById("user-table-body");
+  if (!tbody) return;
+
+  tbody.innerHTML = users
+    .map(
+      (user) => `
+    <tr>
+      <td>${user.id}</td>
+      <td>${user.username}</td>
+      <td>${user.role}</td>
+      <td>${user.group_name || "Не назначена"}</td>
+      <td>
+        <button data-id="${user.id}" class="delete-btn">Удалить</button>
+      </td>
+    </tr>
+  `
+    )
+    .join("");
+}
+
+function setupUserDeletionHandlers(token) {
+  document
+    .getElementById("user-table-body")
+    ?.addEventListener("click", async (e) => {
+      if (!e.target.classList.contains("delete-btn")) return;
+
+      const userId = e.target.dataset.id;
+      if (!confirm(`Удалить пользователя ${userId}?`)) return;
+
+      try {
+        await deleteUser(userId, token);
+        await loadUsers(token);
+        showSuccess("Пользователь успешно удален");
+      } catch (error) {
+        showError(`Ошибка удаления: ${error.message}`);
+      }
+    });
+}
+
+async function deleteUser(userId, token) {
+  const response = await fetch(`/api/users/${userId}`, {
+    method: "DELETE",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    credentials: "include",
+  });
+
+  if (!response.ok) {
+    throw new Error(await getErrorMessage(response));
+  }
+}
+
+// ======================
+// Работа с группами
+// ======================
+
+async function loadGroups(token) {
+  try {
+    const response = await fetch("/api/groups", {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+    });
+
+    if (!response.ok) {
+      throw new Error(await getErrorMessage(response));
+    }
+
+    const groups = await response.json();
+    renderGroupSelects(groups);
+  } catch (error) {
+    console.error("Ошибка загрузки групп:", error);
+    showError(`Ошибка загрузки групп: ${error.message}`);
+  }
+}
+
+function renderGroupSelects(groups) {
+  // Для формы добавления пользователя
+  const groupSelect = document.getElementById("group");
+  if (groupSelect) {
+    groupSelect.innerHTML =
+      '<option value="">Выберите группу</option>' +
+      groups.map((g) => `<option value="${g.id}">${g.name}</option>`).join("");
   }
 
-  function renderUsers(users) {
-    userTableBody.innerHTML = "";
-    users.forEach((user) => {
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td>${user.id}</td>
-        <td>${user.username}</td>
-        <td>${user.role}</td>
-        <td>${user.group_name || "Не назначена"}</td>
-        <td>
-          <button data-id="${user.id}" class="delete-btn">Удалить</button>
-        </td>
-      `;
-      userTableBody.appendChild(tr);
+  // Для формы регистрации (если есть)
+  const regGroupSelect = document.getElementById("reg-group");
+  if (regGroupSelect) {
+    regGroupSelect.innerHTML =
+      '<option value="" disabled selected>Выберите группу</option>' +
+      groups.map((g) => `<option value="${g.id}">${g.name}</option>`).join("");
+  }
+}
+
+// ======================
+// Вспомогательные функции
+// ======================
+
+async function getErrorMessage(response) {
+  try {
+    const error = await response.json();
+    return error.message || error.error || "Неизвестная ошибка";
+  } catch {
+    return response.statusText || "Неизвестная ошибка";
+  }
+}
+
+function showError(message) {
+  alert(`Ошибка: ${message}`);
+  console.error(message);
+}
+
+function showSuccess(message) {
+  console.log(message);
+  // Можно добавить красивый toast вместо alert
+  alert(message);
+}
+
+// ======================
+// Класс AdminPanel
+// ======================
+
+class AdminPanel {
+  constructor(token, currentUser) {
+    this.token = token;
+    this.currentUser = currentUser;
+    this.initModal();
+    this.setupEventListeners();
+  }
+
+  initModal() {
+    const modalHTML = `
+      <div class="modal" id="groups-modal">
+        <div class="modal-content">
+          <span class="close">&times;</span>
+          <h3>Управление группами</h3>
+          <div class="groups-controls">
+            <input type="text" id="new-group-name" placeholder="Название группы">
+            <button id="create-group-btn" class="btn-primary">Создать группу</button>
+          </div>
+          <div id="groups-container" class="groups-list"></div>
+        </div>
+      </div>
+    `;
+
+    document.body.insertAdjacentHTML("beforeend", modalHTML);
+    this.modal = document.getElementById("groups-modal");
+    this.setupModalEvents();
+  }
+
+  setupModalEvents() {
+    document
+      .querySelector("#groups-modal .close")
+      .addEventListener("click", () => this.closeModal());
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && this.modal.classList.contains("active")) {
+        this.closeModal();
+      }
     });
   }
 
-  // === Загрузка групп ===
-  async function loadGroups() {
+  setupEventListeners() {
+    document
+      .getElementById("manage-groups-btn")
+      ?.addEventListener("click", () => this.openModal());
+
+    document
+      .getElementById("create-group-btn")
+      ?.addEventListener("click", async () => {
+        await this.handleCreateGroup();
+      });
+
+    document
+      .getElementById("user-form")
+      ?.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        await this.handleUserFormSubmit();
+      });
+  }
+
+  async openModal() {
+    this.modal.classList.add("active");
     try {
-      const res = await fetch("/api/groups", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (!res.ok) throw new Error("Ошибка загрузки групп");
-
-      const groups = await res.json();
-      groupSelect.innerHTML = '<option value="">Выберите группу</option>';
-      groups.forEach((group) => {
-        const option = document.createElement("option");
-        option.value = group.id;
-        option.textContent = group.name;
-        groupSelect.appendChild(option);
-      });
-    } catch (err) {
-      console.error("Ошибка загрузки групп:", err);
-      alert("Ошибка: " + err.message);
+      await this.loadGroups();
+    } catch (error) {
+      showError(`Ошибка загрузки групп: ${error.message}`);
     }
   }
 
-  // === Обработка формы ===
-  userForm.addEventListener("submit", async (e) => {
-    e.preventDefault();
+  closeModal() {
+    this.modal.classList.remove("active");
+  }
 
-    const username = document.getElementById("username").value.trim();
-    const password = document.getElementById("password").value;
-    const role = document.getElementById("role").value;
-    const groupId = role === "student" ? groupSelect.value : null;
+  async loadGroups() {
+    const response = await fetch("/api/groups", {
+      headers: {
+        Authorization: `Bearer ${this.token}`,
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+    });
 
-    // Валидация
-    if (!username || !password) {
-      return alert("Заполните имя пользователя и пароль");
+    if (!response.ok) {
+      throw new Error(await getErrorMessage(response));
     }
 
-    if (role === "student" && !groupId) {
-      return alert("Для студента необходимо выбрать группу");
+    const groups = await response.json();
+    this.renderGroups(groups);
+  }
+
+  renderGroups(groups) {
+    const container = document.getElementById("groups-container");
+    if (!container) return;
+
+    container.innerHTML = groups
+      .map(
+        (group) => `
+      <div class="group-item" data-id="${group.id}">
+        <span>${group.name}</span>
+        <button class="delete-group-btn">🗑️ Удалить</button>
+      </div>
+    `
+      )
+      .join("");
+
+    container.querySelectorAll(".delete-group-btn").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const groupId = btn.closest(".group-item").dataset.id;
+        await this.handleDeleteGroup(groupId);
+      });
+    });
+  }
+
+  async handleCreateGroup() {
+    const nameInput = document.getElementById("new-group-name");
+    const name = nameInput.value.trim();
+
+    if (!name) {
+      showError("Введите название группы");
+      return;
     }
 
     try {
-      const requestBody = { username, password, role };
-      if (groupId) requestBody.group_id = groupId;
-
-      const res = await fetch("/api/auth/register", {
+      const response = await fetch("/api/groups", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${this.token}`,
         },
-        body: JSON.stringify(requestBody),
+        body: JSON.stringify({ name }),
+        credentials: "include",
       });
 
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.message || data.error || "Ошибка регистрации");
+      if (!response.ok) {
+        throw new Error(await getErrorMessage(response));
       }
 
-      userForm.reset();
-      loadUsers();
-      alert("Пользователь успешно создан");
-    } catch (err) {
-      console.error("Ошибка регистрации:", err);
-      alert("Ошибка: " + err.message);
-    }
-  });
-
-  // === Удаление пользователя ===
-  userTableBody.addEventListener("click", async (e) => {
-    if (!e.target.classList.contains("delete-btn")) return;
-
-    const userId = e.target.dataset.id;
-    if (!confirm("Удалить пользователя?")) return;
-
-    try {
-      const res = await fetch(`/api/users/${userId}`, {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (!res.ok) throw new Error("Ошибка удаления");
-
-      loadUsers();
-      alert("Пользователь удален");
-    } catch (err) {
-      console.error("Ошибка удаления:", err);
-      alert("Ошибка: " + err.message);
-    }
-  });
-
-  class AdminPanel {
-    constructor() {
-      this.token = this.getToken();
-      this.currentUser = JSON.parse(localStorage.getItem("user")) || {};
-
-      if (this.currentUser.role === "admin") {
-        this.initModal();
-        this.initGroupsSection();
-        this.setupGroupButton();
-        this.setupEscapeHandler();
-      }
-    }
-
-    getToken() {
-      return (
-        localStorage.getItem("token") ||
-        document.cookie
-          .split("; ")
-          .find((row) => row.startsWith("token="))
-          ?.split("=")[1]
-      );
-    }
-
-    initModal() {
-      const modalHTML = `
-        <div class="modal" id="groups-modal">
-          <div class="modal-content">
-            <span class="close">&times;</span>
-            <h3>Управление группами</h3>
-            <div class="groups-controls">
-              <input type="text" id="new-group-name" placeholder="Название группы">
-              <button id="create-group-btn" class="btn-primary">Создать группу</button>
-            </div>
-            <div id="groups-container" class="groups-list"></div>
-          </div>
-        </div> 
-
-      `;
-
-      document.body.insertAdjacentHTML("beforeend", modalHTML);
-
-      this.modal = document.getElementById("groups-modal");
-      document
-        .querySelector("#groups-modal .close")
-        .addEventListener("click", () => this.closeModal());
-    }
-
-    setupEscapeHandler() {
-      this.handleKeyDown = (e) => {
-        if (e.key === "Escape" && this.modal.classList.contains("active")) {
-          this.closeModal();
-        }
-      };
-    }
-
-    setupGroupButton() {
-      const btn = document.getElementById("manage-groups-btn");
-      if (btn) {
-        btn.addEventListener("click", () => this.openModal());
-      }
-    }
-
-    openModal() {
-      if (this.modal) {
-        this.modal.classList.add("active");
-        document.addEventListener("keydown", this.handleKeyDown);
-        this.loadGroups();
-      }
-    }
-
-    closeModal() {
-      if (this.modal) {
-        this.modal.classList.remove("active");
-        document.removeEventListener("keydown", this.handleKeyDown);
-      }
-    }
-
-    async initGroupsSection() {
-      const groupsSection = document.getElementById("groups-section");
-      if (!groupsSection) return;
-
-      // Загрузка групп
+      nameInput.value = "";
       await this.loadGroups();
-
-      // Обработка создания группы
-      document
-        .getElementById("create-group-btn")
-        .addEventListener("click", async () => {
-          const name = document.getElementById("new-group-name").value.trim();
-          if (!name) return alert("Введите название группы");
-
-          try {
-            const response = await fetch("/api/groups", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${this.token}`,
-              },
-              body: JSON.stringify({ name }),
-              credentials: "include",
-            });
-
-            if (!response.ok) {
-              const error = await response.json();
-              throw new Error(error.error || "Ошибка создания группы");
-            }
-
-            document.getElementById("new-group-name").value = "";
-            await this.loadGroups();
-            await this.loadGroupSelect(); // Обновляем select в форме пользователей
-          } catch (error) {
-            console.error("Ошибка создания группы:", error);
-            alert("Ошибка: " + error.message);
-          }
-        });
-    }
-
-    async loadGroups() {
-      try {
-        const response = await fetch("/api/groups", {
-          headers: {
-            Authorization: `Bearer ${this.token}`,
-          },
-        });
-
-        if (!response.ok) throw new Error("Ошибка загрузки групп");
-
-        const groups = await response.json();
-        this.renderGroups(groups);
-      } catch (error) {
-        console.error("Ошибка загрузки групп:", error);
-        alert("Ошибка: " + error.message);
-      }
-    }
-
-    renderGroups(groups) {
-      const container = document.getElementById("groups-container");
-      if (!container) return;
-
-      container.innerHTML = groups
-        .map(
-          (group) => `
-        <div class="group-item1" data-id="${group.id}">
-          <span>${group.name}</span>
-            <button class="delete-group-btn">🗑️</button>
-        </div>
-      `
-        )
-        .join("");
-
-      // Обработчики удаления
-      document.querySelectorAll(".delete-group-btn").forEach((btn) => {
-        btn.addEventListener("click", async (e) => {
-          const groupId = e.target.closest(".group-item1").dataset.id;
-          if (!confirm(`Удалить группу?`)) return;
-
-          try {
-            const response = await fetch(`/api/groups/${groupId}`, {
-              method: "DELETE",
-              headers: {
-                Authorization: `Bearer ${this.token}`,
-              },
-            });
-
-            if (!response.ok) {
-              const error = await response.json();
-              throw new Error(error.error || "Ошибка удаления группы");
-            }
-
-            await this.loadGroups();
-            await this.loadGroupSelect(); // Обновляем select в форме пользователей
-          } catch (error) {
-            console.error("Ошибка удаления группы:", error);
-            alert("Ошибка: " + error.message);
-          }
-        });
-      });
-    }
-
-    async loadGroupSelect() {
-      try {
-        const response = await fetch("/api/groups", {
-          headers: {
-            Authorization: `Bearer ${this.token}`,
-          },
-        });
-
-        if (!response.ok) throw new Error("Ошибка загрузки групп");
-
-        const groups = await response.json();
-
-        // Обновление select для admin панели
-        const adminSelect = document.getElementById("group");
-        if (adminSelect) {
-          adminSelect.innerHTML = '<option value="">Выберите группу</option>';
-          groups.forEach((group) => {
-            const option = document.createElement("option");
-            option.value = group.id;
-            option.textContent = group.name;
-            adminSelect.appendChild(option);
-          });
-        }
-
-        // Обновление select для формы регистрации (index.html)
-        const regSelect = document.getElementById("reg-group");
-        if (regSelect) {
-          regSelect.innerHTML =
-            '<option value="" disabled selected>Выберите группу</option>';
-          groups.forEach((group) => {
-            const option = document.createElement("option");
-            option.value = group.id;
-            option.textContent = group.name;
-            regSelect.appendChild(option);
-          });
-        }
-      } catch (error) {
-        console.error("Ошибка загрузки групп для select:", error);
-      }
+      await loadGroups(this.token); // Обновляем селекты
+      showSuccess("Группа успешно создана");
+    } catch (error) {
+      showError(`Ошибка создания группы: ${error.message}`);
     }
   }
 
-  // Инициализация
-  loadUsers();
-  loadGroups();
-  new AdminPanel();
-});
+  async handleDeleteGroup(groupId) {
+    if (!confirm(`Удалить группу ${groupId}?`)) return;
+
+    try {
+      const response = await fetch(`/api/groups/${groupId}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${this.token}`,
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        throw new Error(await getErrorMessage(response));
+      }
+
+      await this.loadGroups();
+      await loadGroups(this.token); // Обновляем селекты
+      showSuccess("Группа успешно удалена");
+    } catch (error) {
+      showError(`Ошибка удаления группы: ${error.message}`);
+    }
+  }
+
+  async handleUserFormSubmit() {
+    const form = document.getElementById("user-form");
+    const formData = new FormData(form);
+    const data = {
+      username: formData.get("username").trim(),
+      password: formData.get("password"),
+      role: formData.get("role"),
+      group_id:
+        formData.get("role") === "student" ? formData.get("group") : null,
+    };
+
+    // Валидация
+    if (!data.username || !data.password) {
+      showError("Заполните имя пользователя и пароль");
+      return;
+    }
+
+    if (data.role === "student" && !data.group_id) {
+      showError("Для студента необходимо выбрать группу");
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${this.token}`,
+        },
+        body: JSON.stringify(data),
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        throw new Error(await getErrorMessage(response));
+      }
+
+      form.reset();
+      await loadUsers(this.token);
+      showSuccess("Пользователь успешно создан");
+    } catch (error) {
+      showError(`Ошибка создания пользователя: ${error.message}`);
+    }
+  }
+}
