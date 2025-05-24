@@ -19,33 +19,33 @@ const PORT = process.env.PORT || 3000;
 // Конфигурация базы данных
 // ======================
 const getDbConfig = () => {
-  // Для Railway - используем переменные окружения Railway
+  // Конфигурация для Railway
   if (
     process.env.RAILWAY_ENVIRONMENT === "production" ||
     process.env.MYSQLHOST
   ) {
     return {
-      host: process.env.MYSQLHOST,
-      user: process.env.MYSQLUSER,
+      host: process.env.MYSQLHOST || "mysql.railway.internal",
+      user: process.env.MYSQLUSER || "root",
       password: process.env.MYSQLPASSWORD,
-      database: process.env.MYSQLDATABASE,
-      port: process.env.MYSQLPORT,
+      database: process.env.MYSQLDATABASE || "railway",
+      port: parseInt(process.env.MYSQLPORT) || 3306,
       waitForConnections: true,
       connectionLimit: 10,
       connectTimeout: 10000,
-      ssl: process.env.MYSQL_SSL ? { rejectUnauthorized: false } : null,
-      uri: process.env.DATABASE_URL, // Railway использует DATABASE_URL
+      ssl:
+        process.env.MYSQL_SSL === "true" ? { rejectUnauthorized: false } : null,
       multipleStatements: true,
     };
   }
 
-  // Для локальной разработки
+  // Локальная разработка
   return {
     host: process.env.DB_HOST || "localhost",
     user: process.env.DB_USER || "root",
     password: process.env.DB_PASSWORD || "",
     database: process.env.DB_NAME || "testforge",
-    port: process.env.DB_PORT || 3306,
+    port: parseInt(process.env.DB_PORT) || 3306,
     waitForConnections: true,
     connectionLimit: 10,
     connectTimeout: 10000,
