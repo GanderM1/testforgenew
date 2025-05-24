@@ -268,37 +268,53 @@ async function runMigrations() {
 // Проверка подключения к БД
 // ======================
 const checkDBConnection = async () => {
-  const checkConfig = {
+  console.log("Попытка подключения с параметрами:", {
     host: dbConfig.host,
     port: dbConfig.port,
-    user: dbConfig.user,
-    password: dbConfig.password,
     database: dbConfig.database,
-    ssl: dbConfig.ssl,
-  };
-
-  console.log("Попытка подключения с параметрами:", {
-    host: checkConfig.host,
-    port: checkConfig.port,
-    database: checkConfig.database,
+    user: dbConfig.user,
+    ssl: dbConfig.ssl ? "enabled" : "disabled",
   });
 
   let conn;
   try {
-    conn = await mysql.createConnection(checkConfig);
+    conn = await mysql.createConnection({
+      host: dbConfig.host,
+      port: dbConfig.port,
+      user: dbConfig.user,
+      password: dbConfig.password,
+      database: dbConfig.database,
+      ssl: dbConfig.ssl,
+      connectTimeout: 10000,
+    });
+
     await conn.query("SELECT 1");
     console.log("✅ Проверка подключения успешна");
+
+    // Дополнительная проверка доступности таблиц
+    const [tables] = await conn.query("SHOW TABLES LIKE 'migrations'");
+    if (tables.length === 0) {
+      console.log("⚠️ Таблица migrations не найдена, будут выполнены миграции");
+    }
   } catch (err) {
     console.error("❌ Критическая ошибка подключения:", {
       message: err.message,
       code: err.code,
-      config: {
-        host: checkConfig.host,
-        port: checkConfig.port,
-        database: checkConfig.database,
-      },
+      errno: err.errno,
+      sqlState: err.sqlState,
       stack: err.stack,
     });
+
+    // Подробное логирование конфигурации
+    console.error("Текущая конфигурация DB:", {
+      host: dbConfig.host,
+      port: dbConfig.port,
+      database: dbConfig.database,
+      user: dbConfig.user,
+      password: dbConfig.password ? "***" : "not set",
+      ssl: dbConfig.ssl,
+    });
+
     process.exit(1);
   } finally {
     if (conn) await conn.end();
