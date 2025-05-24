@@ -18,29 +18,41 @@ const PORT = process.env.PORT || 3000;
 // ======================
 // Конфигурация базы данных
 // ======================
-const dbConfig = {
-  host: process.env.MYSQLHOST || "mysql.railway.internal",
-  user: process.env.MYSQLUSER || "root",
-  password: process.env.MYSQLPASSWORD || "HQQFQOrWxKHjOugNyljjZBoxVFysPnSv",
-  database: process.env.MYSQLDATABASE || "railway",
-  port: parseInt(process.env.MYSQLPORT) || 3306,
-  ssl:
-    process.env.NODE_ENV === "production"
-      ? {
-          rejectUnauthorized: false,
-          minVersion: "TLSv1.2",
-        }
-      : null,
-  waitForConnections: true,
-  connectionLimit: 10,
-  connectTimeout: 10000,
-  flags: ["-FOUND_ROWS"],
+const getDbConfig = () => {
+  // Конфигурация для Railway
+  if (
+    process.env.RAILWAY_ENVIRONMENT === "production" ||
+    process.env.MYSQLHOST
+  ) {
+    return {
+      host: process.env.MYSQLHOST || "mysql.railway.internal",
+      user: process.env.MYSQLUSER || "root",
+      password: process.env.MYSQLPASSWORD,
+      database: process.env.MYSQLDATABASE || "railway",
+      port: parseInt(process.env.MYSQLPORT) || 3306,
+      waitForConnections: true,
+      connectionLimit: 10,
+      connectTimeout: 10000,
+      ssl:
+        process.env.MYSQL_SSL === "true" ? { rejectUnauthorized: false } : null,
+      multipleStatements: true,
+    };
+  }
+
+  // Локальная разработка
+  return {
+    host: process.env.DB_HOST || "localhost",
+    user: process.env.DB_USER || "root",
+    password: process.env.DB_PASSWORD || "",
+    database: process.env.DB_NAME || "testforge",
+    port: parseInt(process.env.DB_PORT) || 3306,
+    waitForConnections: true,
+    connectionLimit: 10,
+    connectTimeout: 10000,
+  };
 };
 
-console.log("Актуальная конфигурация БД:", {
-  ...dbConfig,
-  password: "***", // Не логируем реальный пароль
-});
+const dbConfig = getDbConfig();
 const db = mysql.createPool(dbConfig);
 
 // Логирование конфигурации
@@ -197,61 +209,52 @@ CREATE TABLE IF NOT EXISTS test_exclusions (
 async function runMigrations() {
   const connection = await db.getConnection();
   try {
-    console.log("🛠 Начало выполнения миграций...");
-
-    // Отключаем проверку внешних ключей для миграций
     await connection.query("SET FOREIGN_KEY_CHECKS = 0");
 
-    // Создаем таблицу для отслеживания миграций, если её нет
+    // Создаем таблицу для отслеживания миграций
     await connection.query(`
       CREATE TABLE IF NOT EXISTS migrations (
         id INT AUTO_INCREMENT PRIMARY KEY,
-        name VARCHAR(255) NOT NULL UNIQUE,
+        name VARCHAR(255) NOT NULL,
         executed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       ) ENGINE=InnoDB
     `);
 
-    // Получаем список выполненных миграций
     const [executedMigrations] = await connection.query(
       "SELECT name FROM migrations"
     );
-    const executedNames = new Set(executedMigrations.map((m) => m.name));
+    const executedNames = executedMigrations.map((m) => m.name);
 
-    // Выполняем только новые миграции
     for (const migration of migrations) {
-      if (!executedNames.has(migration.name)) {
-        console.log(`🔨 Выполняю миграцию: ${migration.name}`);
+      if (!executedNames.includes(migration.name)) {
+        console.log(`🛠 Выполнение миграции: ${migration.name}`);
 
-        try {
-          // Разбиваем SQL на отдельные запросы
-          const statements = migration.sql
-            .split(";")
-            .map((s) => s.trim())
-            .filter((s) => s.length > 0);
+        // Разделяем SQL на отдельные запросы
+        const statements = migration.sql
+          .split(";")
+          .map((s) => s.trim())
+          .filter((s) => s.length > 0);
 
-          for (const statement of statements) {
-            if (statement) {
-              await connection.query(statement);
-            }
+        for (const statement of statements) {
+          try {
+            await connection.query(statement);
+          } catch (err) {
+            console.error(`❌ Ошибка в запросе:`, err.message);
+            console.error("Запрос:", statement);
+            throw err;
           }
-
-          // Фиксируем выполнение миграции
-          await connection.query("INSERT INTO migrations (name) VALUES (?)", [
-            migration.name,
-          ]);
-          console.log(`✅ Миграция ${migration.name} успешно выполнена`);
-        } catch (err) {
-          console.error(`❌ Ошибка в миграции ${migration.name}:`, err);
-          throw err;
         }
+
+        await connection.query("INSERT INTO migrations (name) VALUES (?)", [
+          migration.name,
+        ]);
+        console.log(`✅ Миграция ${migration.name} успешно выполнена`);
       }
     }
 
-    // Включаем проверку внешних ключей обратно
     await connection.query("SET FOREIGN_KEY_CHECKS = 1");
-    console.log("🎉 Все миграции успешно выполнены");
   } catch (err) {
-    console.error("💥 Критическая ошибка при выполнении миграций:", err);
+    console.error("❌ Ошибка миграций:", err);
     throw err;
   } finally {
     connection.release();
@@ -282,61 +285,15 @@ const checkDBConnection = async () => {
   }
 };
 
-async function debugDatabase() {
-  const conn = await db.getConnection();
+const checkTables = async () => {
   try {
-    // Проверяем существующие таблицы
-    const [tables] = await conn.query(
-      `
-      SELECT table_name 
-      FROM information_schema.tables 
-      WHERE table_schema = ?
-    `,
-      [dbConfig.database]
-    );
-    console.log(
-      "Существующие таблицы:",
-      tables.map((t) => t.table_name)
-    );
-
-    // Проверяем таблицу migrations
-    const [migs] = await conn.query("SELECT * FROM migrations");
-    console.log("Выполненные миграции:", migs);
-  } finally {
-    conn.release();
-  }
-}
-
-async function checkTables() {
-  try {
-    console.log("🛠 Проверка и создание таблиц...");
     await runMigrations();
-
-    // Проверяем, что основные таблицы существуют
-    const [tables] = await db.query(
-      `
-      SELECT table_name 
-      FROM information_schema.tables 
-      WHERE table_schema = ? 
-        AND table_name IN ('users', 'tests', 'questions', 'answers')
-    `,
-      [dbConfig.database]
-    );
-
-    const missingTables = ["users", "tests", "questions", "answers"].filter(
-      (t) => !tables.some((x) => x.table_name === t)
-    );
-
-    if (missingTables.length > 0) {
-      throw new Error(`Отсутствуют таблицы: ${missingTables.join(", ")}`);
-    }
-
-    console.log("✅ Все таблицы существуют");
+    console.log("✅ Все таблицы успешно проверены/созданы");
   } catch (err) {
     console.error("❌ Критическая ошибка инициализации БД:", err);
     throw err;
   }
-}
+};
 
 // ======================
 // Middleware авторизации
@@ -747,15 +704,8 @@ app.delete("/api/groups/:id", authenticate, async (req, res) => {
 // ======================
 // Запуск сервера
 // ======================
-async function startServer() {
-  try {
-    // 1. Проверяем подключение к БД
-    await checkDBConnection();
-    await debugDatabase();
-    // 2. Создаем таблицы через миграции
-    await checkTables();
-
-    // 3. Запускаем сервер
+checkDBConnection()
+  .then(() => {
     const server = app.listen(PORT, "0.0.0.0", () => {
       console.log(`🚀 Сервер запущен на порту ${PORT}`);
       console.log(`🔗 База данных: ${dbConfig.host}/${dbConfig.database}`);
@@ -768,11 +718,8 @@ async function startServer() {
         process.exit(0);
       });
     });
-  } catch (err) {
+  })
+  .catch((err) => {
     console.error("❌ Не удалось запустить сервер:", err);
     process.exit(1);
-  }
-}
-
-// Запускаем приложение
-startServer();
+  });

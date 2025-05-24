@@ -1,45 +1,30 @@
 const mysql = require("mysql2/promise");
 require("dotenv").config();
 
-console.log("DB config:", {
-  host: process.env.MYSQLHOST,
-  user: process.env.MYSQLUSER,
-  password: process.env.MYSQLPASSWORD ? "***" : "(empty)",
-  database: process.env.MYSQLDATABASE,
-  port: process.env.MYSQLPORT,
-});
-
-const isRailway = process.env.MYSQLHOST === "mysql.railway.internal";
-
+// Конфигурация подключения
 const dbConfig = {
-  host: process.env.MYSQLHOST || "",
-  user: process.env.MYSQLUSER || "root",
-  password: process.env.MYSQLPASSWORD || "",
-  database: process.env.MYSQLDATABASE || "",
-  port: Number(process.env.MYSQLPORT) || 3306,
+  host: process.env.DB_HOST || "localhost",
+  user: process.env.DB_USER || "root",
+  password: process.env.DB_PASSWORD || "",
+  database: process.env.DB_NAME || "testforge",
+  port: process.env.DB_PORT || 3306,
   waitForConnections: true,
-  connectionLimit: 10,
+  connectionLimit: 10, // Оптимальное количество соединений в пуле
   queueLimit: 0,
-  connectTimeout: 10000,
-  ssl: isRailway
-    ? {
-        rejectUnauthorized: false,
-        minVersion: "TLSv1.2",
-      }
-    : undefined,
+  connectTimeout: 10000, // 10 секунд таймаут подключения
 };
 
+// Создаем пул соединений
 const pool = mysql.createPool(dbConfig);
 
+// Проверка подключения при старте
 async function checkConnection() {
   let conn;
   try {
     conn = await pool.getConnection();
-    console.log("✅ Успешное подключение к MySQL:", {
-      host: dbConfig.host,
-      database: dbConfig.database,
-    });
+    console.log("✅ Успешное подключение к MySQL");
 
+    // Проверяем существование таблиц
     await checkTables(conn);
   } catch (err) {
     console.error("❌ Ошибка подключения к MySQL:", {
@@ -54,11 +39,12 @@ async function checkConnection() {
   }
 }
 
+// Проверка существования таблиц
 async function checkTables(connection) {
   const requiredTables = ["users", "tests", "questions", "answers"];
   try {
     for (const table of requiredTables) {
-      const [rows] = await connection.query(`SHOW TABLES LIKE ?`, [table]);
+      const [rows] = await connection.query(`SHOW TABLES LIKE '${table}'`);
       if (rows.length === 0) {
         console.warn(`⚠️ Таблица ${table} не найдена`);
       }
@@ -68,8 +54,10 @@ async function checkTables(connection) {
   }
 }
 
+// Проверяем подключение при старте
 checkConnection();
 
+// Обработка завершения приложения
 process.on("SIGINT", async () => {
   try {
     await pool.end();
