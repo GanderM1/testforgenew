@@ -299,18 +299,37 @@ const checkTables = async () => {
 // Middleware авторизации
 // ======================
 const authenticate = async (req, res, next) => {
+  // Разрешаем OPTIONS запросы для CORS
+  if (req.method === "OPTIONS") return next();
+
+  // Публичные маршруты (полный доступ)
   const publicRoutes = [
     "/api/auth",
     "/api/auth/login",
     "/api/auth/register",
     "/api/health",
-    "/api/groups",
   ];
 
+  // Частично публичные маршруты (GET доступен всем, остальные методы требуют авторизации)
+  const partiallyPublicRoutes = [{ path: "/api/groups", methods: ["GET"] }];
+
+  // Проверяем полные публичные маршруты
   if (publicRoutes.some((route) => req.path.startsWith(route))) {
     return next();
   }
 
+  // Проверяем частично публичные маршруты
+  const isPartiallyPublic = partiallyPublicRoutes.some((route) => {
+    const pathMatch = req.path.startsWith(route.path);
+    const methodMatch = route.methods.includes(req.method);
+    return pathMatch && methodMatch;
+  });
+
+  if (isPartiallyPublic) {
+    return next();
+  }
+
+  // Для всех остальных маршрутов требуем авторизацию
   try {
     const token =
       req.cookies?.token || req.headers.authorization?.split(" ")[1];
