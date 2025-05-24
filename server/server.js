@@ -21,7 +21,7 @@ const PORT = process.env.PORT || 3000;
 const dbConfig = {
   host: process.env.MYSQLHOST || "mysql.railway.internal",
   user: process.env.MYSQLUSER || "root",
-  password: process.env.MYSQLPASSWORD || "mhCdebLvqfawRlcserQlwxboFOeRdOWX",
+  password: process.env.MYSQLPASSWORD || "RQktuLMxfeDeonoGKqTqykWLpPcBUnlo",
   database: process.env.MYSQLDATABASE || "railway",
   port: parseInt(process.env.MYSQLPORT) || 3306,
   ssl:
