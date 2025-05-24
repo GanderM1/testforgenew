@@ -9,9 +9,9 @@ const dbConfig = {
   database: process.env.DB_NAME || "testforge",
   port: process.env.DB_PORT || 3306,
   waitForConnections: true,
-  connectionLimit: 10, // Оптимальное количество соединений в пуле
+  connectionLimit: 10,
   queueLimit: 0,
-  connectTimeout: 10000, // 10 секунд таймаут подключения
+  connectTimeout: 10000,
 };
 
 // Создаем пул соединений
