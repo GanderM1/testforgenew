@@ -1,3 +1,10 @@
+// Функция редиректа на страницу входа
+function redirectToLogin() {
+  localStorage.removeItem("token");
+  localStorage.removeItem("user");
+  window.location.href = "/index.html";
+}
+
 // Общая функция для авторизованных запросов
 async function makeAuthRequest(url, method = "GET", body = null) {
   const token = localStorage.getItem("token");
@@ -32,11 +39,27 @@ async function makeAuthRequest(url, method = "GET", body = null) {
   }
 }
 
-// Загрузка групп
-async function loadGroups() {
+// Загрузка групп без авторизации (публично)
+async function loadGroupsPublic() {
   try {
-    const groups = await makeAuthRequest("/api/groups");
+    const res = await fetch("/api/groups");
+    if (!res.ok) throw new Error(`Ошибка сервера: ${res.status}`);
+    return await res.json();
+  } catch (error) {
+    console.error("Ошибка при загрузке групп (public):", error);
+    return [];
+  }
+}
+
+// Загрузка групп с возможностью выбора авторизации
+async function loadGroups(authRequired = true) {
+  try {
+    const groups = authRequired
+      ? await makeAuthRequest("/api/groups")
+      : await loadGroupsPublic();
+
     const groupSelect = document.getElementById("group");
+    if (!groupSelect) return;
 
     groupSelect.innerHTML =
       '<option value="" disabled selected>Выберите группу</option>';
@@ -53,11 +76,12 @@ async function loadGroups() {
   }
 }
 
-// Загрузка пользователей
+// Загрузка пользователей (только с авторизацией)
 async function loadUsers() {
   try {
     const users = await makeAuthRequest("/api/users");
     const userTableBody = document.getElementById("user-table-body");
+    if (!userTableBody) return;
     userTableBody.innerHTML = "";
 
     users.forEach((user) => {
@@ -66,9 +90,7 @@ async function loadUsers() {
         <td>${user.id}</td>
         <td>${user.username}</td>
         <td>${user.role}</td>
-        <td>${
-          user.group_id || "Не назначена"
-        }</td> <!-- Используем group_name -->
+        <td>${user.group_id || "Не назначена"}</td>
         <td>
           <button class="delete-btn" data-id="${user.id}">Удалить</button>
         </td>
@@ -231,14 +253,14 @@ document.addEventListener("DOMContentLoaded", () => {
   // Открытие модальных окон
   if (loginBtn) {
     loginBtn.addEventListener("click", () => {
-      loginModal.style.display = "flex"; // Центрируем модальное окно
+      loginModal.style.display = "flex";
     });
   }
 
   if (registerBtn) {
     registerBtn.addEventListener("click", () => {
       registerModal.style.display = "flex";
-      loadGroups(); // ← Подгрузить группы каждый раз при открытии окна
+      loadGroups(false); // загрузка групп публично без авторизации
     });
   }
 
@@ -259,9 +281,8 @@ document.addEventListener("DOMContentLoaded", () => {
   setupLoginForm();
   setupRegisterForm();
 
-  // Загружаем данные только на соответствующих страницах
   if (window.location.pathname.includes("admin.html")) {
-    loadGroups();
+    loadGroups(true); // загрузка с авторизацией
     loadUsers();
   }
 });
