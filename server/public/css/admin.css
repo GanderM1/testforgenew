@@ -82,8 +82,7 @@ button:hover {
 }
 
 .form-group label {
-  display: flex;
-  align-items: center;
+  display: block;
   margin-bottom: 0.5rem;
   font-weight: bold;
 }
@@ -335,4 +334,10 @@ select {
   font-size: 12px;
   color: #666;
   margin-top: 5px;
+}
+
+label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
 }
