@@ -299,129 +299,46 @@ const checkTables = async () => {
 // Middleware авторизации
 // ======================
 const authenticate = async (req, res, next) => {
-  const token =
-    req.cookies?.token ||
-    req.headers.authorization?.match(/^Bearer\s+(.*?)$/i)?.[1] ||
-    req.query.token;
+  const publicRoutes = [
+    "/api/auth",
+    "/api/auth/login",
+    "/api/auth/register",
+    "/api/health",
+    "/api/groups",
+  ];
 
-  if (!token) {
-    console.warn(`Попытка доступа без токена: ${req.method} ${req.path}`, {
-      ip: req.ip,
-      ua: req.get("User-Agent"),
-    });
-    return res.status(401).json({
-      error: "Требуется авторизация",
-      code: "AUTH_REQUIRED",
-    });
+  if (publicRoutes.some((route) => req.path.startsWith(route))) {
+    return next();
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET, {
-      algorithms: ["HS256"],
-      ignoreExpiration: false,
-    });
+    const token =
+      req.cookies?.token || req.headers.authorization?.split(" ")[1];
+    if (!token) return res.status(401).json({ error: "Требуется авторизация" });
 
-    if (!decoded.id || !decoded.iat || !decoded.exp) {
-      throw new jwt.JsonWebTokenError("Неполный payload токена");
-    }
-
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const [users] = await db.query(
-      `SELECT id, username, role, group_id, is_active 
-       FROM users WHERE id = ? LIMIT 1`,
-      [decoded.id]
+      `SELECT id, username, role, group_id, is_active FROM users WHERE id = ?`,
+      [decoded.userId]
     );
 
-    const user = users[0];
-    const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
-
-    if (!user) {
-      console.error(`Пользователь не найден: ${decoded.id}`, {
-        tokenHash: tokenHash.substring(0, 12),
-      });
-      return res.status(403).json({
-        error: "Пользователь не найден",
-        code: "USER_NOT_FOUND",
-      });
+    if (!users[0]?.is_active) {
+      return res
+        .status(401)
+        .json({ error: "Пользователь не найден или деактивирован" });
     }
 
-    if (!user.is_active) {
-      console.warn(`Попытка входа неактивного пользователя: ${user.id}`);
-      return res.status(403).json({
-        error: "Аккаунт деактивирован",
-        code: "ACCOUNT_DISABLED",
-      });
-    }
-
-    if (!validRoles.includes(user.role)) {
-      console.error(`Неизвестная роль пользователя: ${user.role}`, {
-        userId: user.id,
-      });
-      return res.status(403).json({
-        error: "Недостаточно прав",
-        code: "INVALID_ROLE",
-      });
-    }
-
-    req.user = {
-      id: user.id,
-      username: user.username,
-      role: user.role,
-      group_id: user.group_id,
-      tokenHash: tokenHash.substring(0, 12),
-    };
-
-    if (process.env.NODE_ENV === "development") {
-      console.log(`Аутентификация: ${user.username} [${user.role}]`);
-    }
-
+    req.user = users[0];
     next();
   } catch (err) {
-    const errorResponse = {
-      production: {
-        TokenExpiredError: {
-          error: "Сессия истекла",
-          code: "TOKEN_EXPIRED",
-        },
-        JsonWebTokenError: {
-          error: "Неверный токен",
-          code: "INVALID_TOKEN",
-        },
-        default: {
-          error: "Ошибка аутентификации",
-          code: "AUTH_ERROR",
-        },
-      },
-      development: {
-        TokenExpiredError: {
-          error: `Токен истек: ${err.expiredAt}`,
-          code: "TOKEN_EXPIRED",
-          stack: err.stack,
-        },
-        JsonWebTokenError: {
-          error: `Неверный токен: ${err.message}`,
-          code: "INVALID_TOKEN",
-          stack: err.stack,
-        },
-        default: {
-          error: `Ошибка: ${err.message}`,
-          code: "AUTH_ERROR",
-          stack: err.stack,
-        },
-      },
-    };
-
-    const env =
-      process.env.NODE_ENV === "production" ? "production" : "development";
-    const response = errorResponse[env][err.name] || errorResponse[env].default;
-
-    console.error(`Ошибка аутентификации: ${err.name}`, {
-      message: err.message,
-      path: req.path,
-      method: req.method,
-      ...(env === "development" && { stack: err.stack }),
-    });
-
-    res.status(403).json(response);
+    console.error("Ошибка аутентификации:", err.message);
+    if (err.name === "JsonWebTokenError") {
+      return res.status(401).json({ error: "Недействительный токен" });
+    }
+    if (err.name === "TokenExpiredError") {
+      return res.status(401).json({ error: "Токен истек" });
+    }
+    res.status(500).json({ error: "Ошибка сервера при аутентификации" });
   }
 };
 
@@ -722,7 +639,7 @@ app.get("/api/groups", async (req, res) => {
 // ======================
 
 // Создание группы
-app.post("/api/groups", async (req, res) => {
+app.post("/api/groups", authenticate, async (req, res) => {
   if (req.user.role !== "admin") {
     return res.status(403).json({ error: "Доступ запрещён" });
   }
