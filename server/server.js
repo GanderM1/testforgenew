@@ -202,6 +202,12 @@ CREATE TABLE IF NOT EXISTS test_exclusions (
   FOREIGN KEY (test_id) REFERENCES tests(id) ON DELETE CASCADE,
   FOREIGN KEY (group_id) REFERENCES user_groups(id) ON DELETE CASCADE
       ) ENGINE=InnoDB;
+       -- 12. Создание администратора admin2 (если не существует)
+INSERT INTO users (username, password, role, group_id)
+SELECT 'admin2', '$2b$10$2sAdEKXPnmMNHDbTjUKvoeI8Bss4piVuhdupyYI06j5cBQwlvlEdG', 'admin', NULL
+WHERE NOT EXISTS (
+  SELECT 1 FROM users WHERE username = 'admin2'
+);
     `,
   },
 ];
