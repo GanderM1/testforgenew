@@ -268,24 +268,24 @@ async function runMigrations() {
 // Проверка подключения к БД
 // ======================
 const checkDBConnection = async () => {
-  console.log("Попытка подключения с параметрами:", {
+  const checkConfig = {
     host: dbConfig.host,
     port: dbConfig.port,
+    user: dbConfig.user,
+    password: dbConfig.password,
     database: dbConfig.database,
+    ssl: dbConfig.ssl,
+  };
+
+  console.log("Попытка подключения с параметрами:", {
+    host: checkConfig.host,
+    port: checkConfig.port,
+    database: checkConfig.database,
   });
 
   let conn;
   try {
-    // Используем соединение без пула для проверки
-    conn = await mysql.createConnection({
-      host: dbConfig.host,
-      user: dbConfig.user,
-      password: dbConfig.password,
-      database: dbConfig.database,
-      port: dbConfig.port,
-      ssl: dbConfig.ssl,
-    });
-
+    conn = await mysql.createConnection(checkConfig);
     await conn.query("SELECT 1");
     console.log("✅ Проверка подключения успешна");
   } catch (err) {
@@ -293,10 +293,11 @@ const checkDBConnection = async () => {
       message: err.message,
       code: err.code,
       config: {
-        host: dbConfig.host,
-        port: dbConfig.port,
-        database: dbConfig.database,
+        host: checkConfig.host,
+        port: checkConfig.port,
+        database: checkConfig.database,
       },
+      stack: err.stack,
     });
     process.exit(1);
   } finally {
