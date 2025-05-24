@@ -197,52 +197,61 @@ CREATE TABLE IF NOT EXISTS test_exclusions (
 async function runMigrations() {
   const connection = await db.getConnection();
   try {
+    console.log("🛠 Начало выполнения миграций...");
+
+    // Отключаем проверку внешних ключей для миграций
     await connection.query("SET FOREIGN_KEY_CHECKS = 0");
 
-    // Создаем таблицу для отслеживания миграций
+    // Создаем таблицу для отслеживания миграций, если её нет
     await connection.query(`
       CREATE TABLE IF NOT EXISTS migrations (
         id INT AUTO_INCREMENT PRIMARY KEY,
-        name VARCHAR(255) NOT NULL,
+        name VARCHAR(255) NOT NULL UNIQUE,
         executed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       ) ENGINE=InnoDB
     `);
 
+    // Получаем список выполненных миграций
     const [executedMigrations] = await connection.query(
       "SELECT name FROM migrations"
     );
-    const executedNames = executedMigrations.map((m) => m.name);
+    const executedNames = new Set(executedMigrations.map((m) => m.name));
 
+    // Выполняем только новые миграции
     for (const migration of migrations) {
-      if (!executedNames.includes(migration.name)) {
-        console.log(`🛠 Выполнение миграции: ${migration.name}`);
+      if (!executedNames.has(migration.name)) {
+        console.log(`🔨 Выполняю миграцию: ${migration.name}`);
 
-        // Разделяем SQL на отдельные запросы
-        const statements = migration.sql
-          .split(";")
-          .map((s) => s.trim())
-          .filter((s) => s.length > 0);
+        try {
+          // Разбиваем SQL на отдельные запросы
+          const statements = migration.sql
+            .split(";")
+            .map((s) => s.trim())
+            .filter((s) => s.length > 0);
 
-        for (const statement of statements) {
-          try {
-            await connection.query(statement);
-          } catch (err) {
-            console.error(`❌ Ошибка в запросе:`, err.message);
-            console.error("Запрос:", statement);
-            throw err;
+          for (const statement of statements) {
+            if (statement) {
+              await connection.query(statement);
+            }
           }
-        }
 
-        await connection.query("INSERT INTO migrations (name) VALUES (?)", [
-          migration.name,
-        ]);
-        console.log(`✅ Миграция ${migration.name} успешно выполнена`);
+          // Фиксируем выполнение миграции
+          await connection.query("INSERT INTO migrations (name) VALUES (?)", [
+            migration.name,
+          ]);
+          console.log(`✅ Миграция ${migration.name} успешно выполнена`);
+        } catch (err) {
+          console.error(`❌ Ошибка в миграции ${migration.name}:`, err);
+          throw err;
+        }
       }
     }
 
+    // Включаем проверку внешних ключей обратно
     await connection.query("SET FOREIGN_KEY_CHECKS = 1");
+    console.log("🎉 Все миграции успешно выполнены");
   } catch (err) {
-    console.error("❌ Ошибка миграций:", err);
+    console.error("💥 Критическая ошибка при выполнении миграций:", err);
     throw err;
   } finally {
     connection.release();
@@ -272,6 +281,31 @@ const checkDBConnection = async () => {
     if (conn) await conn.end();
   }
 };
+
+async function debugDatabase() {
+  const conn = await db.getConnection();
+  try {
+    // Проверяем существующие таблицы
+    const [tables] = await conn.query(
+      `
+      SELECT table_name 
+      FROM information_schema.tables 
+      WHERE table_schema = ?
+    `,
+      [dbConfig.database]
+    );
+    console.log(
+      "Существующие таблицы:",
+      tables.map((t) => t.table_name)
+    );
+
+    // Проверяем таблицу migrations
+    const [migs] = await conn.query("SELECT * FROM migrations");
+    console.log("Выполненные миграции:", migs);
+  } finally {
+    conn.release();
+  }
+}
 
 async function checkTables() {
   try {
@@ -717,7 +751,7 @@ async function startServer() {
   try {
     // 1. Проверяем подключение к БД
     await checkDBConnection();
-
+    await debugDatabase();
     // 2. Создаем таблицы через миграции
     await checkTables();
 
