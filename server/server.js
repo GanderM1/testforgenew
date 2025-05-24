@@ -18,48 +18,74 @@ const PORT = process.env.PORT || 3000;
 // ======================
 // Конфигурация базы данных
 // ======================
-const dbConfig = {
-  host: process.env.MYSQLHOST || "mysql.railway.internal",
-  user: process.env.MYSQLUSER || "root",
-  password: process.env.MYSQLPASSWORD,
-  database: process.env.MYSQLDATABASE || "railway",
-  port: parseInt(process.env.MYSQLPORT) || 3306,
-  ssl:
-    process.env.NODE_ENV === "production"
-      ? {
-          rejectUnauthorized: false,
-          minVersion: "TLSv1.2",
-        }
-      : null,
-  waitForConnections: true,
-  connectionLimit: 10,
-  connectTimeout: 10000,
-  flags: ["-FOUND_ROWS"],
+const getDbConfig = () => {
+  // Конфигурация для Railway
+  if (
+    process.env.RAILWAY_ENVIRONMENT === "production" ||
+    process.env.MYSQLHOST
+  ) {
+    return {
+      host: process.env.MYSQLHOST || "mysql.railway.internal",
+      user: process.env.MYSQLUSER || "root",
+      password: process.env.MYSQLPASSWORD,
+      database: process.env.MYSQLDATABASE || "railway",
+      port: parseInt(process.env.MYSQLPORT) || 3306,
+      waitForConnections: true,
+      connectionLimit: 10,
+      connectTimeout: 10000,
+      ssl:
+        process.env.MYSQL_SSL === "true" ? { rejectUnauthorized: false } : null,
+      multipleStatements: true,
+    };
+  }
+
+  // Локальная разработка
+  return {
+    host: process.env.DB_HOST || "localhost",
+    user: process.env.DB_USER || "root",
+    password: process.env.DB_PASSWORD || "",
+    database: process.env.DB_NAME || "testforge",
+    port: parseInt(process.env.DB_PORT) || 3306,
+    waitForConnections: true,
+    connectionLimit: 10,
+    connectTimeout: 10000,
+  };
 };
 
-console.log("Актуальная конфигурация БД:", {
-  ...dbConfig,
-  password: "***", // Не логируем реальный пароль
-});
+const dbConfig = getDbConfig();
 const db = mysql.createPool(dbConfig);
+
+// Логирование конфигурации
+console.log("🔧 Конфигурация сервера:", {
+  environment: process.env.NODE_ENV || "development",
+  port: PORT,
+  database: {
+    host: dbConfig.host,
+    name: dbConfig.database,
+    port: dbConfig.port,
+  },
+});
 
 // ======================
 // Middleware
 // ======================
 app.use(helmet());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-app.use(cookieParser());
-app.use(morgan(process.env.NODE_ENV === "production" ? "combined" : "dev"));
-app.use(express.static(path.join(__dirname, "public")));
 app.use(
   cors({
-    origin: ["http://localhost:3000", "https://testforge1.up.railway.app"],
+    origin:
+      process.env.NODE_ENV === "production"
+        ? process.env.FRONTEND_URL
+        : "http://localhost:3000",
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
+app.use(morgan(process.env.NODE_ENV === "production" ? "combined" : "dev"));
+app.use(express.static(path.join(__dirname, "public")));
 
 // ======================
 // Миграции базы данных
