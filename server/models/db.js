@@ -3,15 +3,16 @@ require("dotenv").config();
 
 // Конфигурация подключения
 const dbConfig = {
-  host: process.env.DB_HOST || "localhost",
-  user: process.env.DB_USER || "root",
-  password: process.env.DB_PASSWORD || "",
-  database: process.env.DB_NAME || "testforge",
-  port: process.env.DB_PORT || 3306,
+  host: process.env.MYSQLHOST || "mysql.railway.internal",
+  user: process.env.MYSQLUSER || "root",
+  password: process.env.MYSQLPASSWORD,
+  database: process.env.MYSQLDATABASE || "railway",
+  port: parseInt(process.env.MYSQLPORT) || 3306,
   waitForConnections: true,
   connectionLimit: 10,
-  queueLimit: 0,
   connectTimeout: 10000,
+  ssl: process.env.MYSQL_SSL === "true" ? { rejectUnauthorized: false } : null,
+  multipleStatements: true,
 };
 
 // Создаем пул соединений
