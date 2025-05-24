@@ -2,7 +2,7 @@
 async function makeAuthRequest(url, method = "GET", body = null) {
   const token = localStorage.getItem("token");
   if (!token) {
-    redirectToLogin();
+    window.location.href = "/index.html";
     throw new Error("Требуется авторизация");
   }
 
