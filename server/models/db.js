@@ -3,16 +3,28 @@ require("dotenv").config();
 
 // Конфигурация подключения
 const dbConfig = {
-  host: process.env.DB_HOST || "localhost",
-  user: process.env.DB_USER || "root",
-  password: process.env.DB_PASSWORD || "",
-  database: process.env.DB_NAME || "testforge",
-  port: process.env.DB_PORT || 3306,
+  host: process.env.MYSQLHOST || "mysql.railway.internal",
+  user: process.env.MYSQLUSER || "root",
+  password: process.env.MYSQLPASSWORD || "mhCdebLvqfawRlcserQlwxboFOeRdOWX",
+  database: process.env.MYSQLDATABASE || "railway",
+  port: parseInt(process.env.MYSQLPORT) || 3306,
+  ssl:
+    process.env.NODE_ENV === "production"
+      ? {
+          rejectUnauthorized: false,
+          minVersion: "TLSv1.2",
+        }
+      : null,
   waitForConnections: true,
-  connectionLimit: 10, // Оптимальное количество соединений в пуле
-  queueLimit: 0,
-  connectTimeout: 10000, // 10 секунд таймаут подключения
+  connectionLimit: 10,
+  connectTimeout: 10000,
+  flags: ["-FOUND_ROWS"],
 };
+
+console.log("Актуальная конфигурация БД:", {
+  ...dbConfig,
+  password: "***", // Не логируем реальный пароль
+});
 
 // Создаем пул соединений
 const pool = mysql.createPool(dbConfig);
