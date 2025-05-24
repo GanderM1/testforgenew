@@ -715,7 +715,6 @@ app.delete("/api/groups/:id", authenticate, async (req, res) => {
 // Запуск сервера
 // ======================
 checkDBConnection()
-  .then(() => checkTables())
   .then(() => {
     const server = app.listen(PORT, "0.0.0.0", () => {
       console.log(`🚀 Сервер запущен на порту ${PORT}`);
