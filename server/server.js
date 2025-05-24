@@ -722,7 +722,7 @@ app.get("/api/groups", async (req, res) => {
 // ======================
 
 // Создание группы
-app.post("/api/groups", authenticate, requireAdmin, async (req, res) => {
+app.post("/api/groups", authenticate, async (req, res) => {
   try {
     const { name } = req.body;
     if (!name) {
@@ -746,7 +746,7 @@ app.post("/api/groups", authenticate, requireAdmin, async (req, res) => {
 });
 
 // Удаление группы (только для админов)
-app.delete("/api/groups/:id", authenticate, requireAdmin, async (req, res) => {
+app.delete("/api/groups/:id", authenticate, async (req, res) => {
   try {
     const groupId = req.params.id;
 
