@@ -24,7 +24,7 @@ const getDbConfig = () => {
     return {
       host: process.env.MYSQLHOST || "mysql.railway.internal",
       user: process.env.MYSQLUSER || "root",
-      password: process.env.MYSQLPASSWORD || "lfqGjnHrbRMQyIHeGOVIcVxaXAIYcZdh",
+      password: process.env.MYSQLPASSWORD || "KUCzLkYBMfQImvqgGPBRxHhZOdvVKhxf",
       database: process.env.MYSQLDATABASE || "railway",
       port: process.env.MYSQLPORT || 3306,
       waitForConnections: true,
