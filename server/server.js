@@ -19,24 +19,22 @@ const PORT = process.env.PORT || 3000;
 // Конфигурация базы данных
 // ======================
 const getDbConfig = () => {
-  // Для Railway
-  if (process.env.MYSQLHOST) {
+  // Для Railway - используем переменные окружения Railway
+  if (
+    process.env.RAILWAY_ENVIRONMENT === "production" ||
+    process.env.MYSQLHOST
+  ) {
     return {
-      host: process.env.MYSQLHOST || "mysql.railway.internal",
-      user: process.env.MYSQLUSER || "root",
-      password: process.env.MYSQLPASSWORD || "lfqGjnHrbRMQyIHeGOVIcVxaXAIYcZdh",
-      database: process.env.MYSQLDATABASE || "railway",
-      port: process.env.MYSQLPORT || 3306,
+      host: process.env.MYSQLHOST,
+      user: process.env.MYSQLUSER,
+      password: process.env.MYSQLPASSWORD,
+      database: process.env.MYSQLDATABASE,
+      port: process.env.MYSQLPORT,
       waitForConnections: true,
       connectionLimit: 10,
       connectTimeout: 10000,
-      socketPath: process.env.NODE_ENV === "production" ? null : undefined,
-      ssl:
-        process.env.NODE_ENV === "production"
-          ? { rejectUnauthorized: false }
-          : null,
-      // Явно указываем тип хоста
-      uri: process.env.MYSQL_URL,
+      ssl: process.env.MYSQL_SSL ? { rejectUnauthorized: false } : null,
+      uri: process.env.DATABASE_URL, // Railway использует DATABASE_URL
       multipleStatements: true,
     };
   }
@@ -270,33 +268,39 @@ async function runMigrations() {
 // Проверка подключения к БД
 // ======================
 const checkDBConnection = async () => {
-  console.log("Попытка подключения с параметрами:", dbConfig);
+  console.log("Попытка подключения с параметрами:", {
+    host: dbConfig.host,
+    port: dbConfig.port,
+    database: dbConfig.database,
+  });
 
   let conn;
   try {
-    conn = await mysql.createConnection(dbConfig); // Используем основную конфигурацию
+    // Используем соединение без пула для проверки
+    conn = await mysql.createConnection({
+      host: dbConfig.host,
+      user: dbConfig.user,
+      password: dbConfig.password,
+      database: dbConfig.database,
+      port: dbConfig.port,
+      ssl: dbConfig.ssl,
+    });
+
     await conn.query("SELECT 1");
     console.log("✅ Проверка подключения успешна");
   } catch (err) {
     console.error("❌ Критическая ошибка подключения:", {
       message: err.message,
       code: err.code,
-      config: dbConfig,
-      stack: err.stack,
+      config: {
+        host: dbConfig.host,
+        port: dbConfig.port,
+        database: dbConfig.database,
+      },
     });
     process.exit(1);
   } finally {
     if (conn) await conn.end();
-  }
-};
-
-const checkTables = async () => {
-  try {
-    await runMigrations();
-    console.log("✅ Все таблицы успешно проверены/созданы");
-  } catch (err) {
-    console.error("❌ Критическая ошибка инициализации БД:", err);
-    throw err;
   }
 };
 
@@ -710,6 +714,7 @@ app.delete("/api/groups/:id", authenticate, async (req, res) => {
 // Запуск сервера
 // ======================
 checkDBConnection()
+  .then(() => checkTables())
   .then(() => {
     const server = app.listen(PORT, "0.0.0.0", () => {
       console.log(`🚀 Сервер запущен на порту ${PORT}`);
