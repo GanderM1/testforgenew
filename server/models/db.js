@@ -1,42 +1,45 @@
 const mysql = require("mysql2/promise");
 require("dotenv").config();
 
-// Конфигурация подключения
-const dbConfig = {
-  host: process.env.MYSQLHOST || "mysql.railway.internal",
-  user: process.env.MYSQLUSER || "root",
-  password: process.env.MYSQLPASSWORD || "mhCdebLvqfawRlcserQlwxboFOeRdOWX",
-  database: process.env.MYSQLDATABASE || "railway",
-  port: parseInt(process.env.MYSQLPORT) || 3306,
-  ssl:
-    process.env.NODE_ENV === "production"
-      ? {
-          rejectUnauthorized: false,
-          minVersion: "TLSv1.2",
-        }
-      : null,
-  waitForConnections: true,
-  connectionLimit: 10,
-  connectTimeout: 10000,
-  flags: ["-FOUND_ROWS"],
-};
-
-console.log("Актуальная конфигурация БД:", {
-  ...dbConfig,
-  password: "***", // Не логируем реальный пароль
+console.log("DB config:", {
+  host: process.env.MYSQLHOST,
+  user: process.env.MYSQLUSER,
+  password: process.env.MYSQLPASSWORD ? "***" : "(empty)",
+  database: process.env.MYSQLDATABASE,
+  port: process.env.MYSQLPORT,
 });
 
-// Создаем пул соединений
+const isRailway = process.env.MYSQLHOST === "mysql.railway.internal";
+
+const dbConfig = {
+  host: process.env.MYSQLHOST || "",
+  user: process.env.MYSQLUSER || "root",
+  password: process.env.MYSQLPASSWORD || "",
+  database: process.env.MYSQLDATABASE || "",
+  port: Number(process.env.MYSQLPORT) || 3306,
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0,
+  connectTimeout: 10000,
+  ssl: isRailway
+    ? {
+        rejectUnauthorized: false,
+        minVersion: "TLSv1.2",
+      }
+    : undefined,
+};
+
 const pool = mysql.createPool(dbConfig);
 
-// Проверка подключения при старте
 async function checkConnection() {
   let conn;
   try {
     conn = await pool.getConnection();
-    console.log("✅ Успешное подключение к MySQL");
+    console.log("✅ Успешное подключение к MySQL:", {
+      host: dbConfig.host,
+      database: dbConfig.database,
+    });
 
-    // Проверяем существование таблиц
     await checkTables(conn);
   } catch (err) {
     console.error("❌ Ошибка подключения к MySQL:", {
@@ -51,12 +54,11 @@ async function checkConnection() {
   }
 }
 
-// Проверка существования таблиц
 async function checkTables(connection) {
   const requiredTables = ["users", "tests", "questions", "answers"];
   try {
     for (const table of requiredTables) {
-      const [rows] = await connection.query(`SHOW TABLES LIKE '${table}'`);
+      const [rows] = await connection.query(`SHOW TABLES LIKE ?`, [table]);
       if (rows.length === 0) {
         console.warn(`⚠️ Таблица ${table} не найдена`);
       }
@@ -66,10 +68,8 @@ async function checkTables(connection) {
   }
 }
 
-// Проверяем подключение при старте
 checkConnection();
 
-// Обработка завершения приложения
 process.on("SIGINT", async () => {
   try {
     await pool.end();
