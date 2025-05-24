@@ -305,7 +305,6 @@ const checkDBConnection = async () => {
       stack: err.stack,
     });
 
-    // Подробное логирование конфигурации
     console.error("Текущая конфигурация DB:", {
       host: dbConfig.host,
       port: dbConfig.port,
