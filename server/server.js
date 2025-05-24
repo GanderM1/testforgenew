@@ -305,6 +305,7 @@ const authenticate = async (req, res, next) => {
     "/api/auth/register",
     "/api/health",
     "/api/groups",
+    "/api/groups/:id",
   ];
 
   if (publicRoutes.some((route) => req.path.startsWith(route))) {
