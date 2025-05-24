@@ -704,8 +704,11 @@ app.delete("/api/groups/:id", authenticate, async (req, res) => {
 // ======================
 // Запуск сервера
 // ======================
-checkDBConnection()
-  .then(() => {
+(async () => {
+  try {
+    await checkDBConnection();
+    await checkTables(); // Важно: запускает миграции
+
     const server = app.listen(PORT, "0.0.0.0", () => {
       console.log(`🚀 Сервер запущен на порту ${PORT}`);
       console.log(`🔗 База данных: ${dbConfig.host}/${dbConfig.database}`);
@@ -718,8 +721,8 @@ checkDBConnection()
         process.exit(0);
       });
     });
-  })
-  .catch((err) => {
+  } catch (err) {
     console.error("❌ Не удалось запустить сервер:", err);
     process.exit(1);
-  });
+  }
+})();
