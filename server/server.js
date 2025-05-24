@@ -18,53 +18,30 @@ const PORT = process.env.PORT || 3000;
 // ======================
 // Конфигурация базы данных
 // ======================
-const getDbConfig = () => {
-  // Конфигурация для Railway
-  if (
-    process.env.RAILWAY_ENVIRONMENT === "production" ||
-    process.env.MYSQLHOST
-  ) {
-    return {
-      host: process.env.MYSQLHOST || "mysql.railway.internal",
-      user: process.env.MYSQLUSER || "root",
-      password: process.env.MYSQLPASSWORD,
-      database: process.env.MYSQLDATABASE || "railway",
-      port: parseInt(process.env.MYSQLPORT) || 3306,
-      waitForConnections: true,
-      connectionLimit: 10,
-      connectTimeout: 10000,
-      ssl:
-        process.env.MYSQL_SSL === "true" ? { rejectUnauthorized: false } : null,
-      multipleStatements: true,
-    };
-  }
-
-  // Локальная разработка
-  return {
-    host: process.env.DB_HOST || "localhost",
-    user: process.env.DB_USER || "root",
-    password: process.env.DB_PASSWORD || "",
-    database: process.env.DB_NAME || "testforge",
-    port: parseInt(process.env.DB_PORT) || 3306,
-    waitForConnections: true,
-    connectionLimit: 10,
-    connectTimeout: 10000,
-  };
+const dbConfig = {
+  host: process.env.MYSQLHOST || "mysql.railway.internal",
+  user: process.env.MYSQLUSER || "root",
+  password: process.env.MYSQLPASSWORD,
+  database: process.env.MYSQLDATABASE || "railway",
+  port: parseInt(process.env.MYSQLPORT) || 3306,
+  ssl:
+    process.env.NODE_ENV === "production"
+      ? {
+          rejectUnauthorized: false,
+          minVersion: "TLSv1.2",
+        }
+      : null,
+  waitForConnections: true,
+  connectionLimit: 10,
+  connectTimeout: 10000,
+  flags: ["-FOUND_ROWS"],
 };
 
-const dbConfig = getDbConfig();
-const db = mysql.createPool(dbConfig);
-
-// Логирование конфигурации
-console.log("🔧 Конфигурация сервера:", {
-  environment: process.env.NODE_ENV || "development",
-  port: PORT,
-  database: {
-    host: dbConfig.host,
-    name: dbConfig.database,
-    port: dbConfig.port,
-  },
+console.log("Актуальная конфигурация БД:", {
+  ...dbConfig,
+  password: "***", // Не логируем реальный пароль
 });
+const db = mysql.createPool(dbConfig);
 
 // ======================
 // Middleware
