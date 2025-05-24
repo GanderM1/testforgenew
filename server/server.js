@@ -304,9 +304,13 @@ const authenticate = async (req, res, next) => {
     "/api/auth/login",
     "/api/auth/register",
     "/api/health",
-    "/api/groups",
-    "/api/groups/:id",
+    "/api/groups", // GET /api/groups публичный
   ];
+
+  // Для GET-запросов к /api/groups/:id делаем исключение
+  if (req.method === "GET" && req.path.match(/^\/api\/groups\/\d+$/)) {
+    return next();
+  }
 
   if (publicRoutes.some((route) => req.path.startsWith(route))) {
     return next();
@@ -318,18 +322,32 @@ const authenticate = async (req, res, next) => {
     if (!token) return res.status(401).json({ error: "Требуется авторизация" });
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    // Проверяем наличие userId в декодированном токене
+    if (!decoded.userId) {
+      return res.status(401).json({ error: "Неверный формат токена" });
+    }
+
     const [users] = await db.query(
       `SELECT id, username, role, group_id, is_active FROM users WHERE id = ?`,
       [decoded.userId]
     );
 
-    if (!users[0]?.is_active) {
+    if (!users[0] || !users[0]?.is_active) {
       return res
         .status(401)
         .json({ error: "Пользователь не найден или деактивирован" });
     }
 
-    req.user = users[0];
+    // Сохраняем полную информацию о пользователе
+    req.user = {
+      id: users[0].id,
+      username: users[0].username,
+      role: users[0].role,
+      group_id: users[0].group_id,
+      is_active: users[0].is_active,
+    };
+
     next();
   } catch (err) {
     console.error("Ошибка аутентификации:", err.message);
@@ -341,6 +359,17 @@ const authenticate = async (req, res, next) => {
     }
     res.status(500).json({ error: "Ошибка сервера при аутентификации" });
   }
+};
+
+// Добавляем middleware для проверки админских прав
+const requireAdmin = (req, res, next) => {
+  if (!req.user) {
+    return res.status(401).json({ error: "Требуется авторизация" });
+  }
+  if (req.user.role !== "admin") {
+    return res.status(403).json({ error: "Доступ запрещён" });
+  }
+  next();
 };
 
 // ======================
@@ -640,11 +669,7 @@ app.get("/api/groups", async (req, res) => {
 // ======================
 
 // Создание группы
-app.post("/api/groups", authenticate, async (req, res) => {
-  if (req.user.role !== "admin") {
-    return res.status(403).json({ error: "Доступ запрещён" });
-  }
-
+app.post("/api/groups", authenticate, requireAdmin, async (req, res) => {
   try {
     const { name } = req.body;
     if (!name) {
@@ -667,12 +692,8 @@ app.post("/api/groups", authenticate, async (req, res) => {
   }
 });
 
-// Удаление группы
-app.delete("/api/groups/:id", authenticate, async (req, res) => {
-  if (req.user.role !== "admin") {
-    return res.status(403).json({ error: "Доступ запрещён" });
-  }
-
+// Удаление группы (только для админов)
+app.delete("/api/groups/:id", authenticate, requireAdmin, async (req, res) => {
   try {
     const groupId = req.params.id;
 
