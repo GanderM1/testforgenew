@@ -1,3 +1,9 @@
+function redirectToLogin() {
+  localStorage.removeItem("token");
+  localStorage.removeItem("user");
+  window.location.href = "/index.html";
+}
+
 // Общая функция для авторизованных запросов
 async function makeAuthRequest(url, method = "GET", body = null) {
   const token = localStorage.getItem("token");
