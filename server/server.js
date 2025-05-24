@@ -90,89 +90,213 @@ app.use(morgan(process.env.NODE_ENV === "production" ? "combined" : "dev"));
 app.use(express.static(path.join(__dirname, "public")));
 
 // ======================
+// Миграции базы данных
+// ======================
+const migrations = [
+  {
+    name: "01-initial-schema.sql",
+    sql: `
+      -- 1. Сначала создаем таблицу групп (нет зависимостей)
+      CREATE TABLE IF NOT EXISTS user_groups (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+      
+      -- 2. Добавляем обязательные группы (если их нет)
+      INSERT IGNORE INTO user_groups (id, name) VALUES 
+        (1, 'Группа К'),
+        (2, 'Группа З');
+      
+      -- 3. Таблица пользователей (зависит от user_groups)
+      CREATE TABLE IF NOT EXISTS users (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        username VARCHAR(255) NOT NULL,
+        password VARCHAR(255) NOT NULL,
+        role ENUM('student', 'teacher', 'admin') NOT NULL DEFAULT 'student',
+        group_id INT,
+        is_active BOOLEAN DEFAULT TRUE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (group_id) REFERENCES user_groups(id) ON DELETE SET NULL,
+        UNIQUE KEY unique_user_per_group (username, group_id)
+      ) ENGINE=InnoDB;
+      
+      -- 4. Таблица тестов (зависит от users)
+      CREATE TABLE IF NOT EXISTS tests (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        title VARCHAR(255) NOT NULL,
+        description TEXT,
+        author_id INT NOT NULL,
+        available_to_all BOOLEAN DEFAULT FALSE,
+        passing_score INT DEFAULT NULL,
+        can_retake BOOLEAN DEFAULT TRUE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (author_id) REFERENCES users(id) ON DELETE CASCADE
+      ) ENGINE=InnoDB;
+      
+      -- 5. Таблица вопросов (зависит от tests)
+      CREATE TABLE IF NOT EXISTS questions (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        test_id INT NOT NULL,
+        text TEXT NOT NULL,
+        question_type ENUM('single', 'multiple', 'text') NOT NULL DEFAULT 'single',
+        correct_text_answer TEXT NULL,
+        FOREIGN KEY (test_id) REFERENCES tests(id) ON DELETE CASCADE
+      ) ENGINE=InnoDB;
+      
+      -- 6. Таблица ответов (зависит от questions)
+      CREATE TABLE IF NOT EXISTS answers (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        question_id INT NOT NULL,
+        text TEXT NOT NULL,
+        is_correct BOOLEAN NOT NULL DEFAULT FALSE,
+        FOREIGN KEY (question_id) REFERENCES questions(id) ON DELETE CASCADE
+      ) ENGINE=InnoDB;
+      
+      -- 7. Таблица попыток (зависит от users и tests)
+      CREATE TABLE IF NOT EXISTS test_attempts (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        test_id INT NOT NULL,
+        started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        completed_at TIMESTAMP NULL,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY (test_id) REFERENCES tests(id) ON DELETE CASCADE
+      ) ENGINE=InnoDB;
+      
+      -- 8. Таблица ответов студентов (зависит от test_attempts, questions, answers)
+      CREATE TABLE IF NOT EXISTS student_answers (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        attempt_id INT NOT NULL,
+        question_id INT NOT NULL,
+        answer_id INT NULL,
+        text_answer TEXT NULL,
+        answered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (attempt_id) REFERENCES test_attempts(id) ON DELETE CASCADE,
+        FOREIGN KEY (question_id) REFERENCES questions(id) ON DELETE CASCADE,
+        FOREIGN KEY (answer_id) REFERENCES answers(id) ON DELETE SET NULL
+      ) ENGINE=InnoDB;
+      
+      -- 9. Таблица результатов тестов (зависит от users и tests)
+      CREATE TABLE IF NOT EXISTS test_results (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        test_id INT NOT NULL,
+        score INT NOT NULL,
+        total_questions INT NOT NULL,
+        completed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY (test_id) REFERENCES tests(id) ON DELETE CASCADE
+      ) ENGINE=InnoDB;
+      
+      -- 10. Таблица связи тестов и групп (зависит от tests и user_groups)
+      CREATE TABLE IF NOT EXISTS test_groups (
+        test_id INT NOT NULL,
+        group_id INT NOT NULL,
+        PRIMARY KEY (test_id, group_id),
+        FOREIGN KEY (test_id) REFERENCES tests(id) ON DELETE CASCADE,
+        FOREIGN KEY (group_id) REFERENCES user_groups(id) ON DELETE CASCADE
+      ) ENGINE=InnoDB;
+
+      -- 11. Таблица исключений тестов для групп
+CREATE TABLE IF NOT EXISTS test_exclusions (
+  test_id INT NOT NULL,
+  group_id INT NOT NULL,
+  PRIMARY KEY (test_id, group_id),
+  FOREIGN KEY (test_id) REFERENCES tests(id) ON DELETE CASCADE,
+  FOREIGN KEY (group_id) REFERENCES user_groups(id) ON DELETE CASCADE
+      ) ENGINE=InnoDB;
+    `,
+  },
+];
+
+async function runMigrations() {
+  const connection = await db.getConnection();
+  try {
+    await connection.query("SET FOREIGN_KEY_CHECKS = 0");
+
+    // Создаем таблицу для отслеживания миграций
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS migrations (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        executed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB
+    `);
+
+    const [executedMigrations] = await connection.query(
+      "SELECT name FROM migrations"
+    );
+    const executedNames = executedMigrations.map((m) => m.name);
+
+    for (const migration of migrations) {
+      if (!executedNames.includes(migration.name)) {
+        console.log(`🛠 Выполнение миграции: ${migration.name}`);
+
+        // Разделяем SQL на отдельные запросы
+        const statements = migration.sql
+          .split(";")
+          .map((s) => s.trim())
+          .filter((s) => s.length > 0);
+
+        for (const statement of statements) {
+          try {
+            await connection.query(statement);
+          } catch (err) {
+            console.error(`❌ Ошибка в запросе:`, err.message);
+            console.error("Запрос:", statement);
+            throw err;
+          }
+        }
+
+        await connection.query("INSERT INTO migrations (name) VALUES (?)", [
+          migration.name,
+        ]);
+        console.log(`✅ Миграция ${migration.name} успешно выполнена`);
+      }
+    }
+
+    await connection.query("SET FOREIGN_KEY_CHECKS = 1");
+  } catch (err) {
+    console.error("❌ Ошибка миграций:", err);
+    throw err;
+  } finally {
+    connection.release();
+  }
+}
+
+// ======================
 // Проверка подключения к БД
 // ======================
 const checkDBConnection = async () => {
+  console.log("Попытка подключения с параметрами:", dbConfig);
+
   let conn;
   try {
-    // Сначала подключаемся без указания базы
-    conn = await mysql.createConnection({
-      host: dbConfig.host,
-      user: dbConfig.user,
-      password: dbConfig.password,
-      port: dbConfig.port,
-    });
-
-    console.log("✅ Успешное подключение к MySQL серверу");
-
-    // Создаем базу если не существует
-    await conn.query(`CREATE DATABASE IF NOT EXISTS \`${dbConfig.database}\``);
-    await conn.query(`USE \`${dbConfig.database}\``);
-
-    console.log(`🛠 Используем базу данных: ${dbConfig.database}`);
-
-    await checkTables();
+    conn = await mysql.createConnection(dbConfig); // Используем основную конфигурацию
+    await conn.query("SELECT 1");
+    console.log("✅ Проверка подключения успешна");
   } catch (err) {
-    console.error("❌ Ошибка подключения к MySQL:", {
+    console.error("❌ Критическая ошибка подключения:", {
       message: err.message,
       code: err.code,
-      host: dbConfig.host,
+      config: dbConfig,
+      stack: err.stack,
     });
     process.exit(1);
   } finally {
-    if (conn) conn.end();
+    if (conn) await conn.end();
   }
 };
 
 const checkTables = async () => {
-  const requiredTables = [
-    "users",
-    "user_groups",
-    "tests",
-    "questions",
-    "answers",
-    "test_results",
-  ];
-  const connection = await db.getConnection();
-
   try {
-    // Проверяем существование таблиц
-    const missingTables = [];
-    for (const table of requiredTables) {
-      const [rows] = await connection.query(`SHOW TABLES LIKE '${table}'`);
-      if (rows.length === 0) {
-        missingTables.push(table);
-      }
-    }
-
-    // Если отсутствуют таблицы, выполняем скрипт инициализации
-    if (missingTables.length > 0) {
-      console.log(
-        "🛠 Обнаружены отсутствующие таблицы:",
-        missingTables.join(", ")
-      );
-
-      const initScript = fs.readFileSync(
-        path.join(__dirname, "db-init.sql"),
-        "utf-8"
-      );
-
-      // Выполняем скрипт построчно
-      const statements = initScript.split(";").filter((s) => s.trim());
-      for (const statement of statements) {
-        try {
-          await connection.query(statement);
-        } catch (err) {
-          console.error("Ошибка выполнения SQL:", err.message);
-        }
-      }
-
-      console.log("✅ База данных успешно инициализирована");
-    } else {
-      console.log("✅ Все таблицы существуют");
-    }
-  } finally {
-    connection.release();
+    await runMigrations();
+    console.log("✅ Все таблицы успешно проверены/созданы");
+  } catch (err) {
+    console.error("❌ Критическая ошибка инициализации БД:", err);
+    throw err;
   }
 };
 
