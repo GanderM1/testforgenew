@@ -722,7 +722,7 @@ app.get("/api/groups", async (req, res) => {
 // ======================
 
 // Создание группы
-app.post("/api/groups", authenticate, async (req, res) => {
+app.post("/api/groups", async (req, res) => {
   if (req.user.role !== "admin") {
     return res.status(403).json({ error: "Доступ запрещён" });
   }
