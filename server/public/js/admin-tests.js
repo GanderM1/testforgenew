@@ -84,10 +84,9 @@ class TestManager {
         <td>${test.id}</td>
         <td>
           ${test.title}
-          ${groupsInfo}
         </td>
         <td>${test.author || "Неизвестно"}</td>
-        <td>${test.question_count || 0}</td>
+        <td>${groupsInfo}</td>
         <td>
           <button class="edit-btn" data-id="${test.id}" ${
         this.canEditTest(test) ? "" : "disabled"

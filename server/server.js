@@ -24,7 +24,7 @@ const getDbConfig = () => {
     return {
       host: process.env.MYSQLHOST || "mysql.railway.internal",
       user: process.env.MYSQLUSER || "root",
-      password: process.env.MYSQLPASSWORD || "KUCzLkYBMfQImvqgGPBRxHhZOdvVKhxf",
+      password: process.env.MYSQLPASSWORD || "lfqGjnHrbRMQyIHeGOVIcVxaXAIYcZdh",
       database: process.env.MYSQLDATABASE || "railway",
       port: process.env.MYSQLPORT || 3306,
       waitForConnections: true,
@@ -42,16 +42,16 @@ const getDbConfig = () => {
   }
 
   // Для локальной разработки
-  // return {
-  //   host: process.env.DB_HOST || "localhost",
-  //   user: process.env.DB_USER || "root",
-  //   password: process.env.DB_PASSWORD || "",
-  //   database: process.env.DB_NAME || "testforge",
-  //   port: process.env.DB_PORT || 3306,
-  //   waitForConnections: true,
-  //   connectionLimit: 10,
-  //   connectTimeout: 10000,
-  // };
+  return {
+    host: process.env.DB_HOST || "localhost",
+    user: process.env.DB_USER || "root",
+    password: process.env.DB_PASSWORD || "",
+    database: process.env.DB_NAME || "testforge",
+    port: process.env.DB_PORT || 3306,
+    waitForConnections: true,
+    connectionLimit: 10,
+    connectTimeout: 10000,
+  };
 };
 
 const dbConfig = getDbConfig();
@@ -72,22 +72,22 @@ console.log("🔧 Конфигурация сервера:", {
 // Middleware
 // ======================
 app.use(helmet());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-app.use(cookieParser());
-app.use(morgan(process.env.NODE_ENV === "production" ? "combined" : "dev"));
-app.use(express.static(path.join(__dirname, "public")));
 app.use(
   cors({
-    origin: [
-      "http://localhost:3000",
-      "https://web-production-2e787.up.railway.app",
-    ],
+    origin:
+      process.env.NODE_ENV === "production"
+        ? process.env.FRONTEND_URL
+        : "http://localhost:3000",
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
+app.use(morgan(process.env.NODE_ENV === "production" ? "combined" : "dev"));
+app.use(express.static(path.join(__dirname, "public")));
 
 // ======================
 // Проверка подключения к БД
