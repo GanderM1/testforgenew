@@ -531,7 +531,7 @@ app.post("/api/auth/register", async (req, res) => {
   }
 });
 
-app.get("/api/users/:id", authenticate, async (req, res) => {
+app.get("/api/users/:id", async (req, res) => {
   try {
     const userId = req.params.id;
 
@@ -568,7 +568,7 @@ app.get("/api/users/:id", authenticate, async (req, res) => {
   }
 });
 
-app.use("/api/tests", authenticate, testsRouter);
+app.use("/api/tests", testsRouter);
 
 // ======================
 // Защищенные роуты
@@ -638,7 +638,7 @@ app.get("/api/groups", async (req, res) => {
 // ======================
 
 // Создание группы
-app.post("/api/groups", authenticate, async (req, res) => {
+app.post("/api/groups", async (req, res) => {
   if (req.user.role !== "admin") {
     return res.status(403).json({ error: "Доступ запрещён" });
   }
@@ -666,7 +666,7 @@ app.post("/api/groups", authenticate, async (req, res) => {
 });
 
 // Удаление группы
-app.delete("/api/groups/:id", authenticate, async (req, res) => {
+app.delete("/api/groups/:id", async (req, res) => {
   if (req.user.role !== "admin") {
     return res.status(403).json({ error: "Доступ запрещён" });
   }
@@ -707,8 +707,7 @@ app.delete("/api/groups/:id", authenticate, async (req, res) => {
 (async () => {
   try {
     await checkDBConnection();
-    await checkTables(); // Важно: запускает миграции
-
+    await checkTables();
     const server = app.listen(PORT, "0.0.0.0", () => {
       console.log(`🚀 Сервер запущен на порту ${PORT}`);
       console.log(`🔗 База данных: ${dbConfig.host}/${dbConfig.database}`);
