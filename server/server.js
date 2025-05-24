@@ -273,15 +273,36 @@ const checkDBConnection = async () => {
   }
 };
 
-const checkTables = async () => {
+async function checkTables() {
   try {
+    console.log("🛠 Проверка и создание таблиц...");
     await runMigrations();
-    console.log("✅ Все таблицы успешно проверены/созданы");
+
+    // Проверяем, что основные таблицы существуют
+    const [tables] = await db.query(
+      `
+      SELECT table_name 
+      FROM information_schema.tables 
+      WHERE table_schema = ? 
+        AND table_name IN ('users', 'tests', 'questions', 'answers')
+    `,
+      [dbConfig.database]
+    );
+
+    const missingTables = ["users", "tests", "questions", "answers"].filter(
+      (t) => !tables.some((x) => x.table_name === t)
+    );
+
+    if (missingTables.length > 0) {
+      throw new Error(`Отсутствуют таблицы: ${missingTables.join(", ")}`);
+    }
+
+    console.log("✅ Все таблицы существуют");
   } catch (err) {
     console.error("❌ Критическая ошибка инициализации БД:", err);
     throw err;
   }
-};
+}
 
 // ======================
 // Middleware авторизации
@@ -692,8 +713,15 @@ app.delete("/api/groups/:id", authenticate, async (req, res) => {
 // ======================
 // Запуск сервера
 // ======================
-checkDBConnection()
-  .then(() => {
+async function startServer() {
+  try {
+    // 1. Проверяем подключение к БД
+    await checkDBConnection();
+
+    // 2. Создаем таблицы через миграции
+    await checkTables();
+
+    // 3. Запускаем сервер
     const server = app.listen(PORT, "0.0.0.0", () => {
       console.log(`🚀 Сервер запущен на порту ${PORT}`);
       console.log(`🔗 База данных: ${dbConfig.host}/${dbConfig.database}`);
@@ -706,8 +734,11 @@ checkDBConnection()
         process.exit(0);
       });
     });
-  })
-  .catch((err) => {
+  } catch (err) {
     console.error("❌ Не удалось запустить сервер:", err);
     process.exit(1);
-  });
+  }
+}
+
+// Запускаем приложение
+startServer();
