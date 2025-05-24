@@ -70,22 +70,19 @@ console.log("🔧 Конфигурация сервера:", {
 // Middleware
 // ======================
 app.use(helmet());
-app.use(
-  cors({
-    origin:
-      process.env.NODE_ENV === "production"
-        ? process.env.FRONTEND_URL
-        : "http://localhost:3000",
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-  })
-);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(morgan(process.env.NODE_ENV === "production" ? "combined" : "dev"));
 app.use(express.static(path.join(__dirname, "public")));
+app.use(
+  cors({
+    origin: ["http://localhost:3000", "https://testforge1.up.railway.app"],
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
 
 // ======================
 // Миграции базы данных
