@@ -202,12 +202,6 @@ CREATE TABLE IF NOT EXISTS test_exclusions (
   FOREIGN KEY (test_id) REFERENCES tests(id) ON DELETE CASCADE,
   FOREIGN KEY (group_id) REFERENCES user_groups(id) ON DELETE CASCADE
       ) ENGINE=InnoDB;
-       -- 12. Создание администратора admin2 (если не существует)
-INSERT INTO users (username, password, role, group_id)
-SELECT 'admin2', '$2b$10$2sAdEKXPnmMNHDbTjUKvoeI8Bss4piVuhdupyYI06j5cBQwlvlEdG', 'admin', NULL
-WHERE NOT EXISTS (
-  SELECT 1 FROM users WHERE username = 'admin2'
-);
     `,
   },
 ];
@@ -453,31 +447,31 @@ app.post("/api/auth/register", async (req, res) => {
       return res.status(400).json({ error: "ФИ и пароль обязательны" });
     }
 
-    // Приведение ФИ к формату: каждое слово с заглавной
-    const normalizeFullName = (name) =>
-      name
-        .toLowerCase()
-        .trim()
-        .replace(/(?:^|\s|-)[а-яё]/g, (letter) => letter.toUpperCase());
+    // // Приведение ФИ к формату: каждое слово с заглавной
+    // const normalizeFullName = (name) =>
+    //   name
+    //     .toLowerCase()
+    //     .trim()
+    //     .replace(/(?:^|\s|-)[а-яё]/g, (letter) => letter.toUpperCase());
 
-    username = normalizeFullName(username);
+    // username = normalizeFullName(username);
 
-    // Валидация символов
-    const validUsernameRegex = /^[А-Яа-яЁё\- ]+$/;
-    const capitalLetters = username.match(/[А-ЯЁ]/g) || [];
+    // // Валидация символов
+    // const validUsernameRegex = /^[А-Яа-яЁё\- ]+$/;
+    // const capitalLetters = username.match(/[А-ЯЁ]/g) || [];
 
-    if (!validUsernameRegex.test(username)) {
-      return res.status(400).json({
-        error: "ФИ может содержать только кириллицу, пробелы и дефисы",
-      });
-    }
+    // if (!validUsernameRegex.test(username)) {
+    //   return res.status(400).json({
+    //     error: "ФИ может содержать только кириллицу, пробелы и дефисы",
+    //   });
+    // }
 
-    if (capitalLetters.length < 2) {
-      return res.status(400).json({
-        error:
-          "ФИ должно содержать как минимум две заглавные буквы (например, имя и фамилия)",
-      });
-    }
+    // if (capitalLetters.length < 2) {
+    //   return res.status(400).json({
+    //     error:
+    //       "ФИ должно содержать как минимум две заглавные буквы (например, имя и фамилия)",
+    //   });
+    // }
 
     // Проверка роли
     if (!["student", "teacher", "admin"].includes(role)) {
