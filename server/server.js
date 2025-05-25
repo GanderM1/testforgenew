@@ -603,6 +603,56 @@ app.get("/api/profile", (req, res) => {
   res.json({ user: req.user });
 });
 
+app.get("/api/students/my-stats", async (req, res) => {
+  try {
+    // Проверяем, что запрашивает студент
+    if (req.user.role !== "student") {
+      return res.status(403).json({ error: "Доступ только для студентов" });
+    }
+
+    const userId = req.user.id;
+
+    // Запрос для получения статистики по пройденным тестам
+    const [stats] = await db.query(
+      `
+      SELECT 
+        t.id AS test_id,
+        t.title AS test_title,
+        u.username AS author,
+        COUNT(tr.id) AS attempts,
+        MAX(tr.score) AS best_score,
+        MIN(tr.score) AS worst_score,
+        AVG(tr.score) AS average_score,
+        MAX(tr.completed_at) AS last_attempt
+      FROM test_results tr
+      JOIN tests t ON tr.test_id = t.id
+      JOIN users u ON t.author_id = u.id
+      WHERE tr.user_id = ?
+      GROUP BY t.id, t.title, u.username
+      ORDER BY last_attempt DESC
+    `,
+      [userId]
+    );
+
+    // Форматируем результаты
+    const formattedStats = stats.map((stat) => ({
+      test_id: stat.test_id,
+      test_title: stat.test_title,
+      author: stat.author,
+      attempts: stat.attempts,
+      best_score: Math.round(stat.best_score * 100),
+      worst_score: Math.round(stat.worst_score * 100),
+      average_score: Math.round(stat.average_score * 100),
+      last_attempt: stat.last_attempt,
+    }));
+
+    res.json(formattedStats);
+  } catch (err) {
+    console.error("Ошибка получения статистики студента:", err);
+    res.status(500).json({ error: "Ошибка сервера" });
+  }
+});
+
 app.get("/api/users", async (req, res) => {
   try {
     if (req.user.role !== "admin") {

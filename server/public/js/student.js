@@ -1,4 +1,5 @@
 document.addEventListener("DOMContentLoaded", function () {
+  new StudentStatsManager();
   // Получаем данные пользователя из localStorage
   const token = localStorage.getItem("token");
   const user = JSON.parse(localStorage.getItem("user")) || {};
@@ -359,3 +360,117 @@ document.addEventListener("DOMContentLoaded", function () {
     window.location.href = "/login.html";
   }
 });
+
+class StudentStatsManager {
+  constructor() {
+    this.modal = document.getElementById("studentStatsModal");
+    this.currentUser = JSON.parse(localStorage.getItem("user")) || {};
+    this.init();
+  }
+
+  async init() {
+    document
+      .getElementById("view-stats-button")
+      .addEventListener("click", () => this.showStats());
+    await this.createModalIfNotExists();
+  }
+
+  async createModalIfNotExists() {
+    if (!this.modal) {
+      const modalHTML = `
+        <div class="modal" id="studentStatsModal">
+          <div class="modal-content" style="max-width: 900px;">
+            <span class="close">&times;</span>
+            <h3>Моя статистика по тестам</h3>
+            <div class="stats-table-container">
+              <table class="stats-table">
+                <thead>
+                  <tr>
+                    <th>Название теста</th>
+                    <th>Автор</th>
+                    <th>Попытки</th>
+                    <th>Лучший результат</th>
+                    <th>Худший результат</th>
+                    <th>Средний результат</th>
+                    <th>Последняя попытка</th>
+                  </tr>
+                </thead>
+                <tbody id="studentStatsTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      `;
+      document.body.insertAdjacentHTML("beforeend", modalHTML);
+      this.modal = document.getElementById("studentStatsModal");
+      this.setupModalEvents();
+    }
+  }
+
+  setupModalEvents() {
+    this.modal.querySelector(".close").addEventListener("click", () => {
+      this.modal.classList.remove("active");
+    });
+
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && this.modal.classList.contains("active")) {
+        this.modal.classList.remove("active");
+      }
+    });
+  }
+
+  async showStats() {
+    try {
+      if (!this.modal) {
+        await this.createModalIfNotExists();
+      }
+
+      const response = await fetch("/api/students/my-stats", {
+        headers: {
+          Authorization: `Bearer ${this.getToken()}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error("Ошибка загрузки статистики");
+      }
+
+      const stats = await response.json();
+      this.renderStats(stats);
+      this.modal.classList.add("active");
+    } catch (error) {
+      console.error("Ошибка:", error);
+      alert(error.message || "Не удалось загрузить статистику");
+    }
+  }
+
+  renderStats(stats) {
+    const tableBody = document.getElementById("studentStatsTableBody");
+    tableBody.innerHTML = "";
+
+    if (!stats || stats.length === 0) {
+      const row = document.createElement("tr");
+      row.innerHTML = `<td colspan="7" class="no-stats">Вы еще не проходили тесты</td>`;
+      tableBody.appendChild(row);
+      return;
+    }
+
+    stats.forEach((testStat) => {
+      const row = document.createElement("tr");
+      row.innerHTML = `
+        <td>${testStat.test_title}</td>
+        <td>${testStat.author || "Неизвестно"}</td>
+        <td>${testStat.attempts}</td>
+        <td>${testStat.best_score}%</td>
+        <td>${testStat.worst_score}%</td>
+        <td>${testStat.average_score}%</td>
+        <td>${new Date(testStat.last_attempt).toLocaleDateString()}</td>
+      `;
+      tableBody.appendChild(row);
+    });
+  }
+
+  getToken() {
+    return localStorage.getItem("token") || "";
+  }
+}

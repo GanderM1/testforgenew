@@ -231,3 +231,53 @@ button:hover {
   display: flex;
   align-items: center;
 }
+
+#studentStatsModal .modal-content {
+  max-width: 900px;
+  width: 90%;
+}
+
+#studentStatsModal h3 {
+  margin-top: 0;
+  color: var(--primary);
+  font-size: 3vmin;
+  word-break: break-all;
+}
+
+.stats-table-container {
+  max-height: 70vh;
+  overflow-y: auto;
+  margin: 1rem 0;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+}
+
+.stats-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.stats-table th,
+.stats-table td {
+  padding: 12px 15px;
+  text-align: center;
+  border: 1px solid #ddd;
+}
+
+.stats-table th {
+  background-color: var(--primary);
+  color: white;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.stats-table tr:hover {
+  background-color: var(--hover-color);
+}
+
+.no-stats {
+  text-align: center;
+  padding: 20px;
+  color: var(--text-secondary);
+}
