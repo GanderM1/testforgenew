@@ -107,7 +107,7 @@ main {
   padding: 0.6rem;
   border: 1px solid #ccc;
   border-radius: 6px;
-  font-size: 2vmin;
+  font-size: 1.1rem;
 }
 
 .modal-content button {
@@ -115,7 +115,7 @@ main {
   color: white;
   cursor: pointer;
   border: none;
-  font-size: 2vmin;
+  font-size: 1.1rem;
   font-weight: 600;
 }
 

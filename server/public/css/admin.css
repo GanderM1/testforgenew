@@ -82,7 +82,6 @@ button:hover {
 }
 
 .form-group label {
-  display: block;
   margin-bottom: 0.5rem;
   font-weight: bold;
 }
@@ -296,19 +295,18 @@ select {
 }
 
 .groups-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(7vw, 1.1rem));
-  gap: 1.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
   padding: 1rem 0;
-  justify-content: center;
   margin: 0 auto;
 }
 
-.groups-container {
+.group-item1 {
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 8px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
 }
 
 .multiselect {
@@ -330,14 +328,54 @@ select {
   background-color: #f0f0f0;
 }
 
-.groups-info {
-  font-size: 12px;
-  color: #666;
-  margin-top: 5px;
-}
-
 label {
   display: flex;
   align-items: center;
   gap: 5px;
+}
+
+#groups-select {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.group-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  background: var(--bg);
+  transition: all 0.5s;
+  color: var(--text);
+  border: 2px solid transparent;
+}
+
+.group-btn:hover {
+  border: 2px solid;
+}
+
+.group-btn.selected {
+  border-color: var(--primary);
+  border: 2px solid;
+}
+
+.group-btn input {
+  margin-right: 4px;
+  height: 1.1rem;
+  cursor: pointer;
+}
+
+.general-access {
+  margin-right: 6px;
+}
+
+.smart-search-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }

@@ -2,18 +2,40 @@ const mysql = require("mysql2/promise");
 require("dotenv").config();
 
 // Конфигурация подключения
-const dbConfig = {
-  host: process.env.MYSQLHOST || "mysql.railway.internal",
-  user: process.env.MYSQLUSER || "root",
-  password: process.env.MYSQLPASSWORD,
-  database: process.env.MYSQLDATABASE || "railway",
-  port: parseInt(process.env.MYSQLPORT) || 3306,
-  waitForConnections: true,
-  connectionLimit: 10,
-  connectTimeout: 10000,
-  ssl: process.env.MYSQL_SSL === "true" ? { rejectUnauthorized: false } : null,
-  multipleStatements: true,
+const getDbConfig = () => {
+  // Конфигурация для Railway
+  if (
+    process.env.RAILWAY_ENVIRONMENT === "production" ||
+    process.env.MYSQLHOST
+  ) {
+    return {
+      host: process.env.MYSQLHOST || "mysql.railway.internal",
+      user: process.env.MYSQLUSER || "root",
+      password: process.env.MYSQLPASSWORD,
+      database: process.env.MYSQLDATABASE || "railway",
+      port: parseInt(process.env.MYSQLPORT) || 3306,
+      waitForConnections: true,
+      connectionLimit: 10,
+      connectTimeout: 10000,
+      ssl:
+        process.env.MYSQL_SSL === "true" ? { rejectUnauthorized: false } : null,
+      multipleStatements: true,
+    };
+  }
+
+  // Локальная разработка
+  return {
+    host: process.env.DB_HOST || "localhost",
+    user: process.env.DB_USER || "root",
+    password: process.env.DB_PASSWORD || "",
+    database: process.env.DB_NAME || "testforge",
+    port: parseInt(process.env.DB_PORT) || 3306,
+    waitForConnections: true,
+    connectionLimit: 10,
+    connectTimeout: 10000,
+  };
 };
+const dbConfig = getDbConfig();
 
 // Создаем пул соединений
 const pool = mysql.createPool(dbConfig);

@@ -111,7 +111,7 @@ class TestManager {
     }
 
     const groupNames = test.groups.map((g) => g.name).join(", ");
-    return `<div class="groups-info" title="${groupNames}">Для ${test.groups.length} групп</div>`;
+    return `<div class="groups-info">${groupNames}</div>`;
   }
 
   canEditTest(test) {
@@ -157,13 +157,18 @@ class TestManager {
     });
   }
 
-  showCreateModal() {
+  async showCreateModal() {
     if (!this.modal) {
       this.createModal();
     }
 
     this.resetModal();
     this.currentTestId = null;
+
+    // Загружаем группы перед открытием модального окна
+    await this.loadGroups();
+    this.renderGroupsSelection([]);
+
     this.modal.classList.add("active");
     document.addEventListener("keydown", this.handleKeyDown);
   }
@@ -207,19 +212,62 @@ class TestManager {
 
     if (this.currentUser.role === "student") return;
 
+    // Добавляем кнопку "Общий доступ"
+    const isGeneral = selectedGroups.length === 0;
+    groupsContainer.insertAdjacentHTML(
+      "beforeend",
+      `
+      <label class="group-btn ${isGeneral ? "selected" : ""}">
+        <input type="checkbox" class="general-access" ${
+          isGeneral ? "checked" : ""
+        }>
+        <span>Общий доступ</span>
+      </label>
+      `
+    );
+
+    // Добавляем группы
     this.groups.forEach((group) => {
       const isSelected = selectedGroups.some((g) => g.id === group.id);
       groupsContainer.insertAdjacentHTML(
         "beforeend",
         `
-        <label class="multiselect-option">
+        <label class="group-btn ${isSelected ? "selected" : ""}">
           <input type="checkbox" value="${group.id}" ${
           isSelected ? "checked" : ""
         }>
-          ${group.name}
+          <span>${group.name}</span>
         </label>
-      `
+        `
       );
+    });
+
+    // Настройка обработчиков событий
+    groupsContainer.querySelectorAll(".group-btn input").forEach((checkbox) => {
+      checkbox.addEventListener("change", (e) => {
+        const btn = e.target.closest(".group-btn");
+        if (e.target.classList.contains("general-access")) {
+          // При выборе "Общий доступ" снимаем другие выборы
+          if (e.target.checked) {
+            groupsContainer
+              .querySelectorAll(".group-btn:not(:first-child) input")
+              .forEach((cb) => {
+                cb.checked = false;
+                cb.closest(".group-btn").classList.remove("selected");
+              });
+          }
+          btn.classList.toggle("selected", e.target.checked);
+        } else {
+          // При выборе группы снимаем "Общий доступ"
+          if (e.target.checked) {
+            groupsContainer.querySelector(".general-access").checked = false;
+            groupsContainer
+              .querySelector(".group-btn:first-child")
+              .classList.remove("selected");
+          }
+          btn.classList.toggle("selected", e.target.checked);
+        }
+      });
     });
   }
 
@@ -391,8 +439,8 @@ class TestManager {
             <div class="form-group" id="groups-select-container" ${
               this.currentUser.role === "student" ? 'style="display:none;"' : ""
             }>
-              <label>Доступ для групп (оставьте пустым для общего доступа)</label>
-              <div id="groups-select" class="multiselect"></div>
+              <label>Доступ для групп (выберите группы или оставьте "Общий доступ")</label>
+              <div id="groups-select" class="groups-buttons-container"></div>
             </div>
             <div id="questions-container"></div>
             <button type="button" id="add-question" class="btn">Добавить вопрос</button>
@@ -540,8 +588,11 @@ class TestManager {
   getSelectedGroupIds() {
     if (this.currentUser.role === "student") return [];
 
+    const generalAccess = this.modal.querySelector(".general-access").checked;
+    if (generalAccess) return [];
+
     const checkboxes = this.modal.querySelectorAll(
-      "#groups-select input[type=checkbox]:checked"
+      "#groups-select .group-btn:not(:first-child) input[type=checkbox]:checked"
     );
     return Array.from(checkboxes).map((cb) => parseInt(cb.value));
   }
