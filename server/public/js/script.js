@@ -270,3 +270,19 @@ document.addEventListener("DOMContentLoaded", () => {
     loadUsers();
   }
 });
+
+document.addEventListener("click", (e) => {
+  if (e.target.classList.contains("toggle-password")) {
+    const inputId = e.target.dataset.target;
+    const passwordInput = document.getElementById(inputId);
+    if (!passwordInput) return;
+
+    if (passwordInput.type === "password") {
+      passwordInput.type = "text";
+      e.target.textContent = "🙈"; // меняем иконку
+    } else {
+      passwordInput.type = "password";
+      e.target.textContent = "👁";
+    }
+  }
+});
