@@ -24,13 +24,21 @@
             <div>
               <h2>Пользователи</h2>
               <form id="user-form">
-                <input type="text" id="username" placeholder="Имя" required />
                 <input
-                  type="password"
-                  id="password"
-                  placeholder="Пароль"
+                  type="text"
+                  id="username"
+                  placeholder="Фамилия имя"
                   required
                 />
+                <div class="password-field">
+                  <input
+                    type="password"
+                    id="password"
+                    placeholder="Пароль"
+                    required
+                  />
+                  <span class="toggle-password" data-target="password">🙉</span>
+                </div>
                 <label for="role">Роль:</label>
                 <select id="role" required>
                   <option value="" disabled selected>Роль</option>

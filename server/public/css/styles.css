@@ -161,8 +161,8 @@ main {
 }
 
 .password-wrapper input {
-  width: 100%;
-  padding-right: 40px; /* место под иконку */
+  width: 83%;
+  padding-right: 40px;
 }
 
 .password-wrapper .toggle-password {

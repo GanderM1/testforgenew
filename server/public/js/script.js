@@ -277,12 +277,8 @@ document.addEventListener("click", (e) => {
     const passwordInput = document.getElementById(inputId);
     if (!passwordInput) return;
 
-    if (passwordInput.type === "password") {
-      passwordInput.type = "text";
-      e.target.textContent = "🙈"; // меняем иконку
-    } else {
-      passwordInput.type = "password";
-      e.target.textContent = "👁";
-    }
+    const isHidden = passwordInput.type === "password";
+    passwordInput.type = isHidden ? "text" : "password";
+    e.target.textContent = isHidden ? "🙈" : "🙉";
   }
 });

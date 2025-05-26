@@ -465,7 +465,7 @@ app.post("/api/auth/register", async (req, res) => {
     if (!username || !password) {
       return res
         .status(400)
-        .json({ error: "Имя фамилия и пароль обязательны" });
+        .json({ error: "Фамилия имя и пароль обязательны" });
     }
 
     // Приведение ФИ к формату: каждое слово с заглавной
@@ -484,13 +484,13 @@ app.post("/api/auth/register", async (req, res) => {
     if (!validUsernameRegex.test(username)) {
       return res.status(400).json({
         error:
-          "Имя и фамилия могут содержать только кириллицу, пробелы и дефисы",
+          "Фамилия и имя могут содержать только кириллицу, пробелы и дефисы",
       });
     }
 
     if (capitalLetters.length < 2) {
       return res.status(400).json({
-        error: "Ваше имя должно содержать такой продок (Имя Фимилия)",
+        error: "Ваше имя должно содержать такой продок (Фамилия Имя)",
       });
     }
 
