@@ -165,7 +165,6 @@ class TestManager {
     this.resetModal();
     this.currentTestId = null;
 
-    // Загружаем группы перед открытием модального окна
     await this.loadGroups();
     this.renderGroupsSelection([]);
 
@@ -212,7 +211,6 @@ class TestManager {
 
     if (this.currentUser.role === "student") return;
 
-    // Добавляем кнопку "Общий доступ"
     const isGeneral = selectedGroups.length === 0;
     groupsContainer.insertAdjacentHTML(
       "beforeend",
@@ -226,7 +224,6 @@ class TestManager {
       `
     );
 
-    // Добавляем группы
     this.groups.forEach((group) => {
       const isSelected = selectedGroups.some((g) => g.id === group.id);
       groupsContainer.insertAdjacentHTML(
@@ -242,12 +239,10 @@ class TestManager {
       );
     });
 
-    // Настройка обработчиков событий
     groupsContainer.querySelectorAll(".group-btn input").forEach((checkbox) => {
       checkbox.addEventListener("change", (e) => {
         const btn = e.target.closest(".group-btn");
         if (e.target.classList.contains("general-access")) {
-          // При выборе "Общий доступ" снимаем другие выборы
           if (e.target.checked) {
             groupsContainer
               .querySelectorAll(".group-btn:not(:first-child) input")
@@ -258,7 +253,6 @@ class TestManager {
           }
           btn.classList.toggle("selected", e.target.checked);
         } else {
-          // При выборе группы снимаем "Общий доступ"
           if (e.target.checked) {
             groupsContainer.querySelector(".general-access").checked = false;
             groupsContainer

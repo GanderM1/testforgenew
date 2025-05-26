@@ -1,6 +1,5 @@
 document.addEventListener("DOMContentLoaded", function () {
   new StudentStatsManager();
-  // Получаем данные пользователя из localStorage
   const token = localStorage.getItem("token");
   const user = JSON.parse(localStorage.getItem("user")) || {};
 
@@ -9,13 +8,11 @@ document.addEventListener("DOMContentLoaded", function () {
     return;
   }
 
-  // Настройка заголовков для запросов
   const headers = {
     Authorization: `Bearer ${token}`,
     "Content-Type": "application/json",
   };
 
-  // Основные элементы интерфейса
   const testListContainer = document.getElementById("test-list");
   const testViewContainer = document.getElementById("test-view");
   const backButton = document.createElement("button");
@@ -23,14 +20,12 @@ document.addEventListener("DOMContentLoaded", function () {
   backButton.className = "back-button";
   backButton.addEventListener("click", showTestList);
 
-  // Загружаем тесты при открытии страницы
   loadTests();
 
-  // Функция загрузки списка тестов
   async function loadTests() {
     try {
       console.log("Начало загрузки тестов...");
-      console.log("Текущий пользователь:", user); // Добавлено
+      console.log("Текущий пользователь:", user);
 
       showLoader(testListContainer);
       const response = await fetch("/api/tests", { headers });
@@ -40,11 +35,9 @@ document.addEventListener("DOMContentLoaded", function () {
       let tests = await response.json();
       console.log("Полученные тесты:", tests);
 
-      // Фильтрация только для студентов
       if (user.role === "student") {
         console.log("Фильтрация тестов для студента");
 
-        // Получаем данные пользователя с сервера для актуальной информации
         const userResponse = await fetch(`/api/users/${user.id}`, { headers });
         if (!userResponse.ok)
           throw new Error("Ошибка загрузки данных пользователя");
@@ -72,7 +65,6 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   }
 
-  // В функции renderTestCards обновляем шаблон карточки теста
   function renderTestCards(tests) {
     testListContainer.innerHTML = "";
 
@@ -123,12 +115,10 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   }
 
-  // Загрузка и отображение конкретного теста
   async function startTest(testId) {
     try {
       showLoader(testViewContainer);
 
-      // Проверка доступа для студентов
       const user = JSON.parse(localStorage.getItem("user") || "{}");
       if (user.role === "student") {
         const accessResponse = await fetch(
@@ -156,7 +146,6 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   }
 
-  // Отображение конкретного теста (обновлено для поддержки разных типов)
   function renderTest(test) {
     testViewContainer.innerHTML = "";
     testViewContainer.appendChild(backButton);
@@ -176,7 +165,6 @@ document.addEventListener("DOMContentLoaded", function () {
       const answersContainer =
         questionBlock.querySelector(".answers-container");
 
-      // Обработка разных типов вопросов
       if (question.question_type === "text") {
         answersContainer.innerHTML = `
   <textarea class="text-answer" name="question_${question.id}" 
@@ -222,7 +210,6 @@ document.addEventListener("DOMContentLoaded", function () {
     testViewContainer.appendChild(testForm);
   }
 
-  // Сбор ответов (обновлено для поддержки разных типов)
   function collectAnswers(questions) {
     const answers = [];
 
@@ -264,7 +251,6 @@ document.addEventListener("DOMContentLoaded", function () {
     return answers;
   }
 
-  // Отправка ответов на тест (обновлено)
   async function submitTest(testId, answers) {
     try {
       const response = await fetch(`/api/tests/${testId}/submit`, {
@@ -291,7 +277,6 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   }
 
-  // Показ результатов (без изменений)
   function showTestResult(result) {
     testViewContainer.innerHTML = "";
     testViewContainer.appendChild(backButton);
@@ -326,7 +311,6 @@ document.addEventListener("DOMContentLoaded", function () {
     testViewContainer.appendChild(resultContainer);
   }
 
-  // Вспомогательные функции (без изменений)
   function showTestView() {
     testListContainer.style.display = "none";
     testViewContainer.style.display = "block";

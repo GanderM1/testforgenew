@@ -91,19 +91,19 @@ const migrations = [
   {
     name: "01-initial-schema.sql",
     sql: `
-      -- 1. Сначала создаем таблицу групп (нет зависимостей)
+      
       CREATE TABLE IF NOT EXISTS user_groups (
         id INT AUTO_INCREMENT PRIMARY KEY,
         name VARCHAR(255) NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
       
-      -- 2. Добавляем обязательные группы (если их нет)
+     
       INSERT IGNORE INTO user_groups (id, name) VALUES 
         (1, 'Группа К'),
         (2, 'Группа З');
       
-      -- 3. Таблица пользователей (зависит от user_groups)
+      
       CREATE TABLE IF NOT EXISTS users (
         id INT AUTO_INCREMENT PRIMARY KEY,
         username VARCHAR(255) NOT NULL,
@@ -116,7 +116,7 @@ const migrations = [
         UNIQUE KEY unique_user_per_group (username, group_id)
       ) ENGINE=InnoDB;
       
-      -- 4. Таблица тестов (зависит от users)
+      
       CREATE TABLE IF NOT EXISTS tests (
         id INT AUTO_INCREMENT PRIMARY KEY,
         title VARCHAR(255) NOT NULL,
@@ -130,7 +130,7 @@ const migrations = [
         FOREIGN KEY (author_id) REFERENCES users(id) ON DELETE CASCADE
       ) ENGINE=InnoDB;
       
-      -- 5. Таблица вопросов (зависит от tests)
+      
       CREATE TABLE IF NOT EXISTS questions (
         id INT AUTO_INCREMENT PRIMARY KEY,
         test_id INT NOT NULL,
@@ -140,7 +140,7 @@ const migrations = [
         FOREIGN KEY (test_id) REFERENCES tests(id) ON DELETE CASCADE
       ) ENGINE=InnoDB;
       
-      -- 6. Таблица ответов (зависит от questions)
+      
       CREATE TABLE IF NOT EXISTS answers (
         id INT AUTO_INCREMENT PRIMARY KEY,
         question_id INT NOT NULL,
@@ -149,7 +149,7 @@ const migrations = [
         FOREIGN KEY (question_id) REFERENCES questions(id) ON DELETE CASCADE
       ) ENGINE=InnoDB;
       
-      -- 7. Таблица попыток (зависит от users и tests)
+      
       CREATE TABLE IF NOT EXISTS test_attempts (
         id INT AUTO_INCREMENT PRIMARY KEY,
         user_id INT NOT NULL,
@@ -160,7 +160,7 @@ const migrations = [
         FOREIGN KEY (test_id) REFERENCES tests(id) ON DELETE CASCADE
       ) ENGINE=InnoDB;
       
-      -- 8. Таблица ответов студентов (зависит от test_attempts, questions, answers)
+      
       CREATE TABLE IF NOT EXISTS student_answers (
         id INT AUTO_INCREMENT PRIMARY KEY,
         attempt_id INT NOT NULL,
@@ -173,7 +173,7 @@ const migrations = [
         FOREIGN KEY (answer_id) REFERENCES answers(id) ON DELETE SET NULL
       ) ENGINE=InnoDB;
       
-      -- 9. Таблица результатов тестов (зависит от users и tests)
+      
       CREATE TABLE IF NOT EXISTS test_results (
         id INT AUTO_INCREMENT PRIMARY KEY,
         user_id INT NOT NULL,
@@ -185,7 +185,7 @@ const migrations = [
         FOREIGN KEY (test_id) REFERENCES tests(id) ON DELETE CASCADE
       ) ENGINE=InnoDB;
       
-      -- 10. Таблица связи тестов и групп (зависит от tests и user_groups)
+      
       CREATE TABLE IF NOT EXISTS test_groups (
         test_id INT NOT NULL,
         group_id INT NOT NULL,
@@ -194,7 +194,7 @@ const migrations = [
         FOREIGN KEY (group_id) REFERENCES user_groups(id) ON DELETE CASCADE
       ) ENGINE=InnoDB;
 
-      -- 11. Таблица исключений тестов для групп
+      
 CREATE TABLE IF NOT EXISTS test_exclusions (
   test_id INT NOT NULL,
   group_id INT NOT NULL,

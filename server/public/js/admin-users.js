@@ -2,12 +2,10 @@ document.addEventListener("DOMContentLoaded", () => {
   const currentUser = JSON.parse(localStorage.getItem("user")) || {};
   const isAdmin = currentUser.role === "admin";
 
-  // Скрываем административные разделы
   document.querySelectorAll(".admin-only").forEach((el) => {
     el.style.display = isAdmin ? "" : "none";
   });
 
-  // Если пользователь не админ - прекращаем выполнение
   if (!isAdmin) {
     console.log("Доступ к административным функциям запрещен");
     return;
@@ -18,7 +16,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const groupSelect = document.getElementById("group");
   const roleSelect = document.getElementById("role");
 
-  // Получаем токен
   const token =
     localStorage.getItem("token") ||
     document.cookie
@@ -26,7 +23,6 @@ document.addEventListener("DOMContentLoaded", () => {
       .find((row) => row.startsWith("token="))
       ?.split("=")[1];
 
-  // === Загрузка пользователей ===
   async function loadUsers() {
     try {
       const res = await fetch("/api/users", {
@@ -66,7 +62,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // === Загрузка групп ===
   async function loadGroups() {
     try {
       const res = await fetch("/api/groups", {
@@ -91,7 +86,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  // === Обработка формы ===
   userForm.addEventListener("submit", async (e) => {
     e.preventDefault();
 
@@ -100,7 +94,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const role = document.getElementById("role").value;
     const groupId = role === "student" ? groupSelect.value : null;
 
-    // Валидация
     if (!username || !password) {
       return alert("Заполните имя пользователя и пароль");
     }
@@ -137,7 +130,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // === Удаление пользователя ===
   userTableBody.addEventListener("click", async (e) => {
     if (!e.target.classList.contains("delete-btn")) return;
 
@@ -243,10 +235,8 @@ document.addEventListener("DOMContentLoaded", () => {
       const groupsSection = document.getElementById("groups-section");
       if (!groupsSection) return;
 
-      // Загрузка групп
       await this.loadGroups();
 
-      // Обработка создания группы
       document
         .getElementById("create-group-btn")
         .addEventListener("click", async () => {
@@ -271,7 +261,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
             document.getElementById("new-group-name").value = "";
             await this.loadGroups();
-            await this.loadGroupSelect(); // Обновляем select в форме пользователей
+            await this.loadGroupSelect();
           } catch (error) {
             console.error("Ошибка создания группы:", error);
             alert("Ошибка: " + error.message);
@@ -312,7 +302,6 @@ document.addEventListener("DOMContentLoaded", () => {
         )
         .join("");
 
-      // Обработчики удаления
       document.querySelectorAll(".delete-group-btn").forEach((btn) => {
         btn.addEventListener("click", async (e) => {
           const groupId = e.target.closest(".group-item1").dataset.id;
@@ -332,7 +321,7 @@ document.addEventListener("DOMContentLoaded", () => {
             }
 
             await this.loadGroups();
-            await this.loadGroupSelect(); // Обновляем select в форме пользователей
+            await this.loadGroupSelect();
           } catch (error) {
             console.error("Ошибка удаления группы:", error);
             alert("Ошибка: " + error.message);
@@ -353,7 +342,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const groups = await response.json();
 
-        // Обновление select для admin панели
         const adminSelect = document.getElementById("group");
         if (adminSelect) {
           adminSelect.innerHTML = '<option value="">Выберите группу</option>';
@@ -365,7 +353,6 @@ document.addEventListener("DOMContentLoaded", () => {
           });
         }
 
-        // Обновление select для формы регистрации (index.html)
         const regSelect = document.getElementById("reg-group");
         if (regSelect) {
           regSelect.innerHTML =
@@ -383,7 +370,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  // Инициализация
   loadUsers();
   loadGroups();
   new AdminPanel();

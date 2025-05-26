@@ -4,7 +4,6 @@ const bcrypt = require("bcrypt");
 module.exports = (db) => {
   const router = express.Router();
 
-  // Проверка роли
   const requireRole = (role) => (req, res, next) => {
     if (req.user.role !== role) {
       return res.status(403).json({ error: "Доступ запрещён" });
@@ -12,9 +11,8 @@ module.exports = (db) => {
     next();
   };
 
-  // 🔐 Получить всех пользователей (только админ)
   router.get("/", requireRole("admin"), async (req, res) => {
-    console.log("Запрос на получение пользователей"); // Лог до запроса
+    console.log("Запрос на получение пользователей");
     try {
       const [users] = await db.query(
         `SELECT 
@@ -26,7 +24,7 @@ module.exports = (db) => {
      FROM users 
      LEFT JOIN groups ON users.group_id = groups.id`
       );
-      console.log("Пользователи получены:", users); // Лог после запроса
+      console.log("Пользователи получены:", users);
       res.json(users);
     } catch (err) {
       console.error("Ошибка получения пользователей:", err);
@@ -34,7 +32,6 @@ module.exports = (db) => {
     }
   });
 
-  // ➕ Создать пользователя (только админ)
   router.post("/", requireRole("admin"), async (req, res) => {
     try {
       const { username, password, groupId } = req.body;
@@ -45,7 +42,6 @@ module.exports = (db) => {
           .json({ error: "username, password и groupId обязательны" });
       }
 
-      // Если группа указана, проверяем количество студентов в группе
       const [countRows] = await db.query(
         "SELECT COUNT(*) AS count FROM users WHERE group_id = ? AND role = 'student'",
         [groupId]
@@ -87,7 +83,6 @@ module.exports = (db) => {
 
   router.get("/user_groups", requireRole("admin"), async (req, res) => {
     try {
-      // Используем экранирование имени таблицы groups
       const [user_groups] = await db.query(
         "SELECT id, name FROM `user_groups`"
       );
@@ -98,7 +93,6 @@ module.exports = (db) => {
     }
   });
 
-  // 👤 Получить своего пользователя
   router.get("/me", async (req, res) => {
     res.json(req.user);
   });

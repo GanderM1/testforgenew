@@ -1,11 +1,9 @@
-// Функция редиректа на страницу входа
 function redirectToLogin() {
   localStorage.removeItem("token");
   localStorage.removeItem("user");
   window.location.href = "/index.html";
 }
 
-// Общая функция для авторизованных запросов
 async function makeAuthRequest(url, method = "GET", body = null) {
   const token = localStorage.getItem("token");
   if (!token) {
@@ -39,7 +37,6 @@ async function makeAuthRequest(url, method = "GET", body = null) {
   }
 }
 
-// Загрузка групп без авторизации (публично)
 async function loadGroupsPublic() {
   try {
     const res = await fetch("/api/groups");
@@ -51,7 +48,6 @@ async function loadGroupsPublic() {
   }
 }
 
-// Загрузка групп с возможностью выбора авторизации
 async function loadGroups(authRequired = true) {
   try {
     const groups = authRequired
@@ -76,7 +72,6 @@ async function loadGroups(authRequired = true) {
   }
 }
 
-// Загрузка пользователей (только с авторизацией)
 async function loadUsers() {
   try {
     const users = await makeAuthRequest("/api/users");
@@ -110,7 +105,6 @@ async function loadUsers() {
   }
 }
 
-// Обработка формы входа
 function setupLoginForm() {
   const loginForm = document.getElementById("login-form");
   if (!loginForm) return;
@@ -151,7 +145,6 @@ function setupLoginForm() {
   });
 }
 
-// Обработка формы регистрации
 function setupRegisterForm() {
   const registerForm = document.getElementById("register-form");
   if (!registerForm) return;
@@ -186,7 +179,6 @@ function setupRegisterForm() {
   });
 }
 
-// Проверка авторизации при загрузке страницы
 function checkAuth() {
   const token = localStorage.getItem("token");
   const user = JSON.parse(localStorage.getItem("user") || "{}");
@@ -205,7 +197,6 @@ function checkAuth() {
   }
 }
 
-// Функция для закрытия всех модальных окон
 function closeAllModals() {
   const loginModal = document.getElementById("login-modal");
   const registerModal = document.getElementById("register-modal");
@@ -214,11 +205,9 @@ function closeAllModals() {
   if (registerModal) registerModal.style.display = "none";
 }
 
-// Инициализация при загрузке страницы
 document.addEventListener("DOMContentLoaded", () => {
   checkAuth();
 
-  // Инициализация темы
   const initTheme = () => {
     const savedTheme = localStorage.getItem("theme") || "light";
     document.documentElement.setAttribute("data-theme", savedTheme);
@@ -228,7 +217,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   };
 
-  // Переключение темы
   const setupThemeToggle = () => {
     const themeToggle = document.getElementById("theme-toggle");
     if (!themeToggle) return;
@@ -243,14 +231,12 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   };
 
-  // Открытие и закрытие модальных окон
   const loginBtn = document.getElementById("login-btn");
   const registerBtn = document.getElementById("register-btn");
   const loginModal = document.getElementById("login-modal");
   const registerModal = document.getElementById("register-modal");
   const closeBtns = document.querySelectorAll(".close");
 
-  // Открытие модальных окон
   if (loginBtn) {
     loginBtn.addEventListener("click", () => {
       loginModal.style.display = "flex";
@@ -260,16 +246,14 @@ document.addEventListener("DOMContentLoaded", () => {
   if (registerBtn) {
     registerBtn.addEventListener("click", () => {
       registerModal.style.display = "flex";
-      loadGroups(false); // загрузка групп публично без авторизации
+      loadGroups(false);
     });
   }
 
-  // Закрытие модальных окон
   closeBtns.forEach((btn) => {
     btn.addEventListener("click", closeAllModals);
   });
 
-  // Закрытие модальных окон по клавише Esc
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") {
       closeAllModals();
@@ -282,7 +266,7 @@ document.addEventListener("DOMContentLoaded", () => {
   setupRegisterForm();
 
   if (window.location.pathname.includes("admin.html")) {
-    loadGroups(true); // загрузка с авторизацией
+    loadGroups(true);
     loadUsers();
   }
 });

@@ -1,9 +1,7 @@
 const mysql = require("mysql2/promise");
 require("dotenv").config();
 
-// Конфигурация подключения
 const getDbConfig = () => {
-  // Конфигурация для Railway
   if (
     process.env.RAILWAY_ENVIRONMENT === "production" ||
     process.env.MYSQLHOST
@@ -23,7 +21,6 @@ const getDbConfig = () => {
     };
   }
 
-  // Локальная разработка
   return {
     host: process.env.DB_HOST || "localhost",
     user: process.env.DB_USER || "root",
@@ -37,17 +34,14 @@ const getDbConfig = () => {
 };
 const dbConfig = getDbConfig();
 
-// Создаем пул соединений
 const pool = mysql.createPool(dbConfig);
 
-// Проверка подключения при старте
 async function checkConnection() {
   let conn;
   try {
     conn = await pool.getConnection();
     console.log("✅ Успешное подключение к MySQL");
 
-    // Проверяем существование таблиц
     await checkTables(conn);
   } catch (err) {
     console.error("❌ Ошибка подключения к MySQL:", {
@@ -62,7 +56,6 @@ async function checkConnection() {
   }
 }
 
-// Проверка существования таблиц
 async function checkTables(connection) {
   const requiredTables = ["users", "tests", "questions", "answers"];
   try {
@@ -77,10 +70,8 @@ async function checkTables(connection) {
   }
 }
 
-// Проверяем подключение при старте
 checkConnection();
 
-// Обработка завершения приложения
 process.on("SIGINT", async () => {
   try {
     await pool.end();
