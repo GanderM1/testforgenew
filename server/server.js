@@ -463,7 +463,9 @@ app.post("/api/auth/register", async (req, res) => {
     let { username, password, role = "student", group_id } = req.body;
 
     if (!username || !password) {
-      return res.status(400).json({ error: "ФИ и пароль обязательны" });
+      return res
+        .status(400)
+        .json({ error: "Имя фамилия и пароль обязательны" });
     }
 
     // Приведение ФИ к формату: каждое слово с заглавной
@@ -481,14 +483,14 @@ app.post("/api/auth/register", async (req, res) => {
 
     if (!validUsernameRegex.test(username)) {
       return res.status(400).json({
-        error: "ФИ может содержать только кириллицу, пробелы и дефисы",
+        error:
+          "Имя и фамилия могут содержать только кириллицу, пробелы и дефисы",
       });
     }
 
     if (capitalLetters.length < 2) {
       return res.status(400).json({
-        error:
-          "ФИ должно содержать как минимум две заглавные буквы (например, имя и фамилия)",
+        error: "Ваше имя должно содержать такой продок (Имя Фимилия)",
       });
     }
 
@@ -523,7 +525,8 @@ app.post("/api/auth/register", async (req, res) => {
     );
     if (existing.length > 0) {
       return res.status(400).json({
-        error: "Пользователь с таким ФИ уже зарегистрирован в этой группе",
+        error:
+          "Пользователь с таким именем и фамилий уже зарегистрирован в этой группе",
       });
     }
 
