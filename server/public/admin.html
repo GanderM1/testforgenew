@@ -16,18 +16,20 @@
         <a href="index.html"><button>Выход</button></a>
       </nav>
     </header>
-
     <section class="admin-panel">
       <div class="users">
         <div class="admin-only">
+          <div class="admin-section" id="groups-section">
+            <button id="manage-groups-btn" class="btn">Список Групп</button>
+          </div>
           <div class="full_admin">
             <div>
-              <h2>Пользователи</h2>
+              <h2>Создание пользователя</h2>
               <form id="user-form">
                 <input
                   type="text"
                   id="username"
-                  placeholder="Фамилия имя"
+                  placeholder="Фамилия Имя"
                   required
                 />
                 <div class="password-field">
@@ -54,11 +56,9 @@
                 <button class="btn" type="submit">Добавить</button>
               </form>
             </div>
-            <div class="admin-section" id="groups-section">
-              <button id="manage-groups-btn" class="btn">Список Групп</button>
-            </div>
           </div>
           <div class="table-container">
+            <h2>Таблица пользователей</h2>
             <table>
               <thead>
                 <tr>

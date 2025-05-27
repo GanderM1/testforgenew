@@ -23,6 +23,8 @@ document.addEventListener("DOMContentLoaded", () => {
       .find((row) => row.startsWith("token="))
       ?.split("=")[1];
 
+  let currentUsers = [];
+
   async function loadUsers() {
     try {
       const res = await fetch("/api/users", {
@@ -37,8 +39,9 @@ document.addEventListener("DOMContentLoaded", () => {
         throw new Error(error.message || "Ошибка загрузки пользователей");
       }
 
-      const users = await res.json();
-      renderUsers(users);
+      currentUsers = await res.json();
+      renderUsers(currentUsers);
+      setupTableSorting();
     } catch (err) {
       console.error("Ошибка загрузки пользователей:", err);
       alert("Ошибка: " + err.message);
@@ -60,6 +63,71 @@ document.addEventListener("DOMContentLoaded", () => {
       `;
       userTableBody.appendChild(tr);
     });
+  }
+
+  function setupTableSorting() {
+    const table = document.querySelector(".admin-panel .users table");
+    if (!table) return;
+
+    const headers = table.querySelectorAll("thead th");
+
+    headers.forEach((header, index) => {
+      if (index === 0 || index === headers.length - 1) {
+        header.style.cursor = "default";
+        return;
+      }
+
+      header.style.cursor = "pointer";
+      header.addEventListener("click", () => {
+        sortUsersTable(index, header);
+      });
+    });
+  }
+
+  function sortUsersTable(columnIndex, header) {
+    const table = document.querySelector(".admin-panel .users table");
+
+    const isAscending = header.classList.contains("asc");
+
+    table.querySelectorAll("thead th").forEach((th) => {
+      th.classList.remove("asc", "desc");
+    });
+
+    header.classList.toggle("asc", !isAscending);
+    header.classList.toggle("desc", isAscending);
+
+    const roleWeights = {
+      admin: 3,
+      teacher: 2,
+      student: 1,
+    };
+
+    const sortedUsers = [...currentUsers].sort((a, b) => {
+      let aValue, bValue;
+
+      switch (columnIndex) {
+        case 1:
+          aValue = a.username.toLowerCase();
+          bValue = b.username.toLowerCase();
+          break;
+        case 2:
+          aValue = roleWeights[a.role.toLowerCase()] || 0;
+          bValue = roleWeights[b.role.toLowerCase()] || 0;
+          return isAscending ? aValue - bValue : bValue - aValue;
+        case 3:
+          aValue = (a.group_name || "").toLowerCase();
+          bValue = (b.group_name || "").toLowerCase();
+          break;
+        default:
+          return 0;
+      }
+
+      return isAscending
+        ? aValue.localeCompare(bValue)
+        : bValue.localeCompare(aValue);
+    });
+
+    renderUsers(sortedUsers);
   }
 
   async function loadGroups() {
@@ -190,7 +258,6 @@ document.addEventListener("DOMContentLoaded", () => {
             <div id="groups-container" class="groups-list"></div>
           </div>
         </div> 
-
       `;
 
       document.body.insertAdjacentHTML("beforeend", modalHTML);

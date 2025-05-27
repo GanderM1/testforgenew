@@ -10,6 +10,49 @@ class TestManager {
     this.init();
   }
 
+  setupTableSorting() {
+    const table = document.querySelector(".tests table");
+    const headers = table.querySelectorAll("thead th");
+
+    headers.forEach((header, index) => {
+      if (index === 0 || index === headers.length - 1) {
+        header.style.cursor = "default";
+        return;
+      }
+
+      header.style.cursor = "pointer";
+      header.addEventListener("click", () => {
+        this.sortTestsTable(index, header);
+      });
+    });
+  }
+
+  sortTestsTable(columnIndex, header) {
+    const table = document.querySelector(".tests table");
+    const tbody = table.querySelector("tbody");
+    const rows = Array.from(tbody.querySelectorAll("tr"));
+
+    const isAscending = header.classList.contains("asc");
+
+    table.querySelectorAll("thead th").forEach((th) => {
+      th.classList.remove("asc", "desc");
+    });
+
+    header.classList.toggle("asc", !isAscending);
+    header.classList.toggle("desc", isAscending);
+
+    rows.sort((a, b) => {
+      const aValue = a.cells[columnIndex].textContent.trim();
+      const bValue = b.cells[columnIndex].textContent.trim();
+
+      return isAscending
+        ? aValue.localeCompare(bValue)
+        : bValue.localeCompare(aValue);
+    });
+
+    rows.forEach((row) => tbody.appendChild(row));
+  }
+
   async init() {
     if (this.addTestBtn) {
       this.addTestBtn.addEventListener("click", () => this.showCreateModal());
@@ -17,6 +60,7 @@ class TestManager {
 
     await this.loadGroups();
     this.loadTests();
+    this.setupTableSorting();
   }
 
   async loadGroups() {
@@ -737,8 +781,59 @@ class TestManager {
     this.statsModal.querySelector("#totalAttempts").textContent =
       statistics.totalAttempts;
     this.statsModal.classList.add("active");
+    this.setupStatsTableSorting();
 
     document.addEventListener("keydown", this.handleStatsKeyDown);
+  }
+
+  setupStatsTableSorting() {
+    const table = this.statsModal.querySelector(".stats-table");
+    const headers = table.querySelectorAll("thead th");
+
+    headers.forEach((header, index) => {
+      header.style.cursor = "pointer";
+      header.addEventListener("click", () => {
+        this.sortStatsTable(index, header);
+      });
+    });
+  }
+
+  sortStatsTable(columnIndex, header) {
+    const table = this.statsModal.querySelector(".stats-table");
+    const tbody = table.querySelector("tbody");
+    const rows = Array.from(tbody.querySelectorAll("tr"));
+
+    const isAscending = header.classList.contains("asc");
+
+    table.querySelectorAll("thead th").forEach((th) => {
+      th.classList.remove("asc", "desc");
+    });
+
+    header.classList.toggle("asc", !isAscending);
+    header.classList.toggle("desc", isAscending);
+
+    rows.sort((a, b) => {
+      let aValue = a.cells[columnIndex].textContent.trim();
+      let bValue = b.cells[columnIndex].textContent.trim();
+
+      if (columnIndex >= 2) {
+        if (columnIndex >= 3) {
+          aValue = parseFloat(aValue);
+          bValue = parseFloat(bValue);
+        } else {
+          aValue = parseInt(aValue);
+          bValue = parseInt(bValue);
+        }
+
+        return isAscending ? aValue - bValue : bValue - aValue;
+      } else {
+        return isAscending
+          ? aValue.localeCompare(bValue)
+          : bValue.localeCompare(aValue);
+      }
+    });
+
+    rows.forEach((row) => tbody.appendChild(row));
   }
 
   createStatsModal() {

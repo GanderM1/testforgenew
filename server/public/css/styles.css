@@ -173,3 +173,24 @@ main {
   cursor: pointer;
   user-select: none;
 }
+
+th.asc::after {
+  content: "↑";
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+th.desc::after {
+  content: "↓";
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+th {
+  position: relative;
+  user-select: none;
+}

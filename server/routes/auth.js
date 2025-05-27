@@ -6,7 +6,6 @@ const { body, validationResult } = require("express-validator");
 module.exports = (db) => {
   const router = express.Router();
 
-  // Вход пользователя
   router.post(
     "/login",
     [
@@ -67,7 +66,6 @@ module.exports = (db) => {
     }
   );
 
-  // Регистрация нового студента
   router.post(
     "/register",
     [
@@ -89,7 +87,7 @@ module.exports = (db) => {
       }
 
       const { username, password, group_id } = req.body;
-      const role = "student"; // задаём роль вручную
+      const role = "student";
 
       try {
         const [existingUsers] = await db.query(
