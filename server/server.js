@@ -643,9 +643,9 @@ app.get("/api/students/my-stats", async (req, res) => {
       test_title: stat.test_title,
       author: stat.author,
       attempts: stat.attempts,
-      best_score: Math.round(stat.best_score * 100),
-      worst_score: Math.round(stat.worst_score * 100),
-      average_score: Math.round(stat.average_score * 100),
+      best_score: Math.round(stat.best_score * 10),
+      worst_score: Math.round(stat.worst_score * 10),
+      average_score: Math.round(stat.average_score * 10),
       last_attempt: stat.last_attempt,
     }));
 
