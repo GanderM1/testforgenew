@@ -59,7 +59,6 @@ class TestManager {
       this.addTestBtn.addEventListener("click", () => this.showCreateModal());
     }
 
-    // Обработчик для кнопки инструкции
     const instructionBtn = document.querySelector(".tests button:last-child");
     if (instructionBtn) {
       instructionBtn.addEventListener("click", () =>
