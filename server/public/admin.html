@@ -9,7 +9,7 @@
   </head>
   <body>
     <header>
-      <h1>Панель Администратора</h1>
+      <h1>Конструктор тестов</h1>
       <nav>
         <button id="theme-toggle">🌞</button>
         <a href="student.html"><button>Страница студента</button></a>
@@ -76,7 +76,16 @@
       </div>
       <div class="tests">
         <h2>Тесты</h2>
-        <button class="btn" id="add-test-btn">Добавить тест</button>
+        <div
+          style="
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+          "
+        >
+          <button class="btn" id="add-test-btn">Добавить тест</button>
+          <button class="btn">Иструкция пользования</button>
+        </div>
         <div class="table-container">
           <table>
             <thead>

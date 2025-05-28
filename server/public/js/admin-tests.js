@@ -2,6 +2,7 @@ class TestManager {
   constructor() {
     this.modal = document.getElementById("testModal");
     this.statsModal = document.getElementById("statsModal");
+    this.instructionModal = null;
     this.addTestBtn = document.getElementById("add-test-btn");
     this.testTableBody = document.getElementById("test-table-body");
     this.currentUser = JSON.parse(localStorage.getItem("user") || "{}");
@@ -58,9 +59,82 @@ class TestManager {
       this.addTestBtn.addEventListener("click", () => this.showCreateModal());
     }
 
+    // Обработчик для кнопки инструкции
+    const instructionBtn = document.querySelector(".tests button:last-child");
+    if (instructionBtn) {
+      instructionBtn.addEventListener("click", () =>
+        this.showInstructionModal()
+      );
+    }
+
     await this.loadGroups();
     this.loadTests();
     this.setupTableSorting();
+  }
+
+  createInstructionModal() {
+    const modalHTML = `
+      <div class="modal" id="instructionModal">
+        <div class="modal-content" style="max-width: 700px;">
+          <span class="close">&times;</span>
+          <h3>Инструкция по использованию "Конструктора тестов"</h3>
+          <div class="instruction-content">
+            <h4>Сортировка таблиц:</h4>
+             Для сортировки данных в таблице кликните по названию столбца. Вы можете упорядочить записи по возрастанию/убыванию (числа) или от А до Я / от Я до А (текст). Сортировка недоступна для столбцов "ID" и "Действия".
+
+            <h4>Управление тестами:</h4>
+            <ul>
+              <li><strong>Добавить тест</strong> - создание нового теста с вопросами и ответами</li>
+              <li><strong>✏️ Редактировать</strong> - изменение существующего теста</li>
+              <li><strong>📊 Статистика</strong> - просмотр результатов студентов по тесту</li>
+              <li><strong>🗑️ Удалить</strong> - удаление теста (действие нельзя отменить)</li>
+            </ul>
+ 
+            <h4>Типы вопросов:</h4>
+            <ul>
+              <li><strong>Один ответ</strong> - студент выбирает один вариант из нескольких</li>
+              <li><strong>Несколько ответов</strong> - студент может выбрать несколько правильных вариантов</li>
+              <li><strong>Текстовый ответ</strong> - студент вводит ответ вручную (проверяется точное совпадение)</li>
+            </ul>
+            
+            <h4>Доступ к тестам:</h4>
+            <ul>
+              <li><strong>Общий доступ</strong> - тест доступен всем студентам</li>
+              <li><strong>Выбор групп</strong> - тест доступен только выбранным группам</li>
+            </ul>
+            <div class="p-modal">
+            <p>Для преподавателей: вы можете редактировать и просматривать статистику только своих тестов.*</p>
+            <p>Для администраторов: доступны все функции управления тестами и пользователями.*</p>
+          </div>
+            </div>
+        </div>
+      </div>
+    `;
+
+    document.body.insertAdjacentHTML("beforeend", modalHTML);
+    this.instructionModal = document.getElementById("instructionModal");
+
+    this.instructionModal
+      .querySelector(".close")
+      .addEventListener("click", () => {
+        this.instructionModal.classList.remove("active");
+      });
+
+    document.addEventListener("keydown", (e) => {
+      if (
+        e.key === "Escape" &&
+        this.instructionModal.classList.contains("active")
+      ) {
+        this.instructionModal.classList.remove("active");
+      }
+    });
+  }
+
+  showInstructionModal() {
+    if (!this.instructionModal) {
+      this.createInstructionModal();
+    }
+    this.instructionModal.classList.add("active");
   }
 
   async loadGroups() {
