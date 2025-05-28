@@ -386,9 +386,13 @@ class TestManager {
     const container = document.getElementById("questions-container");
     container.innerHTML = "";
 
-    questions.forEach((question) => {
+    questions.forEach((question, index) => {
       const questionId = Date.now();
-      const questionHTML = this.getQuestionHtml(question, questionId);
+      const questionHTML = this.getQuestionHtml(
+        question,
+        questionId,
+        index + 1
+      );
       container.insertAdjacentHTML("beforeend", questionHTML);
 
       const questionEl = container.querySelector(`[data-id="${questionId}"]`);
@@ -396,11 +400,15 @@ class TestManager {
     });
   }
 
-  getQuestionHtml(question, questionId) {
+  getQuestionHtml(question, questionId, questionNumber) {
     return `
       <div class="question" data-id="${questionId}" data-type="${
       question.question_type
     }">
+        <div class="question-header">
+          <h4>Вопрос ${questionNumber}</h4>
+          <button type="button" class="remove-question">Удалить вопрос</button>
+        </div>
         <div class="form-group">
           <label>Текст вопроса</label>
           <textarea class="question-text" required>${question.text}</textarea>
@@ -484,6 +492,7 @@ class TestManager {
       .querySelector(".remove-question")
       ?.addEventListener("click", () => {
         questionEl.remove();
+        this.updateQuestionNumbers();
       });
 
     questionEl.querySelectorAll(".remove-answer").forEach((btn) => {
@@ -592,11 +601,16 @@ class TestManager {
   addQuestion() {
     const container = document.getElementById("questions-container");
     const questionId = Date.now();
+    const questionNumber = container.querySelectorAll(".question").length + 1;
 
     container.insertAdjacentHTML(
       "beforeend",
       `
       <div class="question" data-id="${questionId}" data-type="single">
+        <div class="question-header">
+          <h4>Вопрос №${questionNumber}</h4>
+          <button type="button" class="remove-question">Удалить вопрос</button>
+        </div>
         <div class="form-group">
           <label>Текст вопроса</label>
           <textarea class="question-text" required></textarea>
@@ -611,7 +625,6 @@ class TestManager {
         </div>
         <div class="answers-container"></div>
         <button type="button" class="add-answer">Добавить ответ</button>
-        <button type="button" class="remove-question">Удалить вопрос</button>
       </div>
     `
     );
@@ -648,6 +661,16 @@ class TestManager {
       .addEventListener("click", function () {
         this.closest(".answer").remove();
       });
+  }
+
+  updateQuestionNumbers() {
+    const questions = this.modal.querySelectorAll(".question");
+    questions.forEach((question, index) => {
+      const header = question.querySelector(".question-header h4");
+      if (header) {
+        header.textContent = `Вопрос ${index + 1}`;
+      }
+    });
   }
 
   async saveTest() {

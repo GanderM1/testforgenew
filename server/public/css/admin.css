@@ -39,7 +39,7 @@ button:hover {
   padding: 1rem;
   margin-bottom: 1rem;
   border-radius: 8px;
-  border-left: 3px solid var(--primary);
+  border: 3px solid var(--primary);
 }
 
 .answer {
@@ -400,4 +400,10 @@ input[type="password"]::-webkit-textfield-decoration-container {
   color: gray;
   text-align: right;
   padding-top: 1rem;
+}
+
+.question-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
