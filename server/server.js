@@ -100,7 +100,7 @@ const migrations = [
       
      
       INSERT IGNORE INTO user_groups (id, name) VALUES 
-        (-1, 'Черновик');
+        (1, 'К21.1');
       
       
       CREATE TABLE IF NOT EXISTS users (
@@ -456,51 +456,51 @@ app.post("/api/auth/register", async (req, res) => {
         .json({ error: "Фамилия имя и пароль обязательны" });
     }
 
-    const normalizeFullName = (name) =>
-      name
-        .toLowerCase()
-        .trim()
-        .replace(/(?:^|\s|-)[а-яё]/g, (letter) => letter.toUpperCase());
+    // const normalizeFullName = (name) =>
+    //   name
+    //     .toLowerCase()
+    //     .trim()
+    //     .replace(/(?:^|\s|-)[а-яё]/g, (letter) => letter.toUpperCase());
 
-    username = normalizeFullName(username);
+    // username = normalizeFullName(username);
 
-    const validUsernameRegex = /^[А-Яа-яЁё\- ]+$/;
-    const capitalLetters = username.match(/[А-ЯЁ]/g) || [];
+    // const validUsernameRegex = /^[А-Яа-яЁё\- ]+$/;
+    // const capitalLetters = username.match(/[А-ЯЁ]/g) || [];
 
-    if (!validUsernameRegex.test(username)) {
-      return res.status(400).json({
-        error:
-          "Фамилия и имя могут содержать только кириллицу, пробелы и дефисы",
-      });
-    }
+    // if (!validUsernameRegex.test(username)) {
+    //   return res.status(400).json({
+    //     error:
+    //       "Фамилия и имя могут содержать только кириллицу, пробелы и дефисы",
+    //   });
+    // }
 
-    if (capitalLetters.length < 2) {
-      return res.status(400).json({
-        error: "Ваше имя должно содержать такой продок (Фамилия Имя)",
-      });
-    }
+    // if (capitalLetters.length < 2) {
+    //   return res.status(400).json({
+    //     error: "Ваше имя должно содержать такой продок (Фамилия Имя)",
+    //   });
+    // }
 
-    if (!["student", "teacher", "admin"].includes(role)) {
-      return res.status(400).json({ error: "Недопустимая роль пользователя" });
-    }
+    // if (!["student", "teacher", "admin"].includes(role)) {
+    //   return res.status(400).json({ error: "Недопустимая роль пользователя" });
+    // }
 
-    if (role === "student" && !group_id) {
-      return res.status(400).json({
-        error: "Для студента необходимо указать группу",
-      });
-    }
+    // if (role === "student" && !group_id) {
+    //   return res.status(400).json({
+    //     error: "Для студента необходимо указать группу",
+    //   });
+    // }
 
-    if (group_id) {
-      const [group] = await connection.query(
-        "SELECT id FROM user_groups WHERE id = ?",
-        [group_id]
-      );
-      if (group.length === 0) {
-        return res.status(400).json({
-          error: "Указанная группа не существует",
-        });
-      }
-    }
+    // if (group_id) {
+    //   const [group] = await connection.query(
+    //     "SELECT id FROM user_groups WHERE id = ?",
+    //     [group_id]
+    //   );
+    //   if (group.length === 0) {
+    //     return res.status(400).json({
+    //       error: "Указанная группа не существует",
+    //     });
+    //   }
+    // }
 
     const [existing] = await connection.query(
       "SELECT id FROM users WHERE username = ? AND group_id <=> ?",
