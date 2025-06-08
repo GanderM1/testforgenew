@@ -100,8 +100,7 @@ const migrations = [
       
      
       INSERT IGNORE INTO user_groups (id, name) VALUES 
-        (1, 'Группа К'),
-        (2, 'Группа З');
+        (-1, 'Черновик');
       
       
       CREATE TABLE IF NOT EXISTS users (
@@ -299,10 +298,8 @@ const checkTables = async () => {
 // Middleware авторизации
 // ======================
 const authenticate = async (req, res, next) => {
-  // Разрешаем OPTIONS запросы для CORS
   if (req.method === "OPTIONS") return next();
 
-  // Публичные маршруты (полный доступ)
   const publicRoutes = [
     "/api/auth",
     "/api/auth/login",
@@ -310,15 +307,12 @@ const authenticate = async (req, res, next) => {
     "/api/health",
   ];
 
-  // Частично публичные маршруты (GET доступен всем, остальные методы требуют авторизации)
   const partiallyPublicRoutes = [{ path: "/api/groups", methods: ["GET"] }];
 
-  // Проверяем полные публичные маршруты
   if (publicRoutes.some((route) => req.path.startsWith(route))) {
     return next();
   }
 
-  // Проверяем частично публичные маршруты
   const isPartiallyPublic = partiallyPublicRoutes.some((route) => {
     const pathMatch = req.path.startsWith(route.path);
     const methodMatch = route.methods.includes(req.method);
@@ -329,7 +323,6 @@ const authenticate = async (req, res, next) => {
     return next();
   }
 
-  // Для всех остальных маршрутов требуем авторизацию
   try {
     const token =
       req.cookies?.token || req.headers.authorization?.split(" ")[1];
@@ -384,7 +377,6 @@ app.get("/api/health", async (req, res) => {
   }
 });
 
-// Auth routes
 app.post("/api/auth/login", async (req, res) => {
   try {
     const { username, password } = req.body;
@@ -392,7 +384,6 @@ app.post("/api/auth/login", async (req, res) => {
       return res.status(400).json({ error: "Логин и пароль обязательны" });
     }
 
-    // Запрос к базе данных
     const [users] = await db.query(
       "SELECT id, username, password, role, group_id, is_active FROM users WHERE username = ?",
       [username]
@@ -406,7 +397,6 @@ app.post("/api/auth/login", async (req, res) => {
     const user = users[0];
     console.log("Пользователь найден в базе данных:", user.username);
 
-    // Проверка активности пользователя и совпадения паролей
     if (!user.is_active) {
       return res.status(401).json({ error: "Пользователь заблокирован" });
     }
@@ -417,7 +407,6 @@ app.post("/api/auth/login", async (req, res) => {
       return res.status(401).json({ error: "Неверный логин или пароль" });
     }
 
-    // Генерация JWT
     console.log("Создание JWT для пользователя:", user.username);
     const token = jwt.sign(
       { userId: user.id, username: user.username, role: user.role },
@@ -425,13 +414,12 @@ app.post("/api/auth/login", async (req, res) => {
       { expiresIn: "8h" }
     );
 
-    // Отправка токена и данных пользователя
     res
       .cookie("token", token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
         sameSite: "strict",
-        maxAge: 8 * 60 * 60 * 1000, // 8 часов
+        maxAge: 8 * 60 * 60 * 1000,
       })
       .json({
         user: {
@@ -468,7 +456,6 @@ app.post("/api/auth/register", async (req, res) => {
         .json({ error: "Фамилия имя и пароль обязательны" });
     }
 
-    // Приведение ФИ к формату: каждое слово с заглавной
     const normalizeFullName = (name) =>
       name
         .toLowerCase()
@@ -477,7 +464,6 @@ app.post("/api/auth/register", async (req, res) => {
 
     username = normalizeFullName(username);
 
-    // Валидация символов
     const validUsernameRegex = /^[А-Яа-яЁё\- ]+$/;
     const capitalLetters = username.match(/[А-ЯЁ]/g) || [];
 
@@ -494,7 +480,6 @@ app.post("/api/auth/register", async (req, res) => {
       });
     }
 
-    // Проверка роли
     if (!["student", "teacher", "admin"].includes(role)) {
       return res.status(400).json({ error: "Недопустимая роль пользователя" });
     }
@@ -505,7 +490,6 @@ app.post("/api/auth/register", async (req, res) => {
       });
     }
 
-    // Проверка существования группы
     if (group_id) {
       const [group] = await connection.query(
         "SELECT id FROM user_groups WHERE id = ?",
@@ -518,7 +502,6 @@ app.post("/api/auth/register", async (req, res) => {
       }
     }
 
-    // Проверка уникальности по имени и группе
     const [existing] = await connection.query(
       "SELECT id FROM users WHERE username = ? AND group_id <=> ?",
       [username, role === "student" ? group_id : null]

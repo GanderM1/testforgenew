@@ -611,7 +611,7 @@ class TestManager {
           <h4>Вопрос №${questionNumber}</h4>
           <button type="button" class="remove-question">Удалить вопрос</button>
         </div>
-        <div class="form-group">
+        <div class="form-group"> 
           <label>Текст вопроса</label>
           <textarea class="question-text" required></textarea>
         </div>
