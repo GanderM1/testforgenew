@@ -211,13 +211,13 @@ button:hover {
   width: 90%;
   justify-content: space-between;
   flex-direction: row-reverse;
+  gap: 10px;
+  align-items: center;
 }
 
 .answer-option input {
   transform: scale(1.9);
-  transition: transform 0.2s ease-in-out;
-  background-color: initial;
-  vertical-align: middle;
+  align-items: center;
 }
 
 #test-form {
