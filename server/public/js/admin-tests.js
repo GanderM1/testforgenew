@@ -406,7 +406,7 @@ class TestManager {
       question.question_type
     }">
         <div class="question-header">
-          <h4>Вопрос ${questionNumber}</h4>
+          <h4>Вопрос №${questionNumber}</h4>
           <button type="button" class="remove-question">Удалить вопрос</button>
         </div>
         <div class="form-group">

@@ -178,19 +178,22 @@ button:hover {
 .question-text {
   font-size: 4vmin;
   padding-bottom: 0.5rem;
+  word-break: break-all;
 }
 
 .answers-container {
   font-size: 3vmin;
+  word-break: break-all;
 }
 
 .question-block {
   display: flex;
   width: 50vw;
   flex-direction: column;
-  align-items: center;
   justify-content: center;
   padding: 1rem;
+  text-align: left;
+  word-break: break-all;
 }
 
 .answers-container {
@@ -198,15 +201,23 @@ button:hover {
   gap: 10px;
   flex-direction: column;
   width: 50vw;
+  justify-content: space-between;
   align-items: center;
-  justify-content: center;
+  word-break: break-all;
 }
 
 .answer-option {
   display: flex;
-  width: 20vw;
+  width: 90%;
   justify-content: space-between;
   flex-direction: row-reverse;
+}
+
+.answer-option input {
+  transform: scale(1.9);
+  transition: transform 0.2s ease-in-out;
+  background-color: initial;
+  vertical-align: middle;
 }
 
 #test-form {
