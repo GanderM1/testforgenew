@@ -411,7 +411,9 @@ class TestManager {
         </div>
         <div class="form-group">
           <label>Текст вопроса</label>
-          <textarea class="question-text" required>${question.text}</textarea>
+          <input type="text" name="question-${questionId}" class="question-text" value="${
+      question.text
+    }" required>
         </div>
         <div class="form-group">
           <label>Тип вопроса</label>
@@ -437,29 +439,32 @@ class TestManager {
       return `
         <div class="form-group correct-text-answer">
           <label>Правильный текстовый ответ</label>
-          <input type="text" class="correct-text" value="${
-            question.correct_text_answer || ""
-          }" required>
+          <input type="text" name="text-answer-${questionId}" class="correct-text" value="${
+        question.correct_text_answer || ""
+      }" required>
         </div>
       `;
     }
 
-    let answersHtml = `
+    const answersHtml = `
       <div class="answers-container">
         ${question.answers
           .map(
-            (answer) => `
-          <div class="answer" data-id="${Date.now()}">
-            <input type="text" class="answer-text" value="${
-              answer.text
-            }" required>
+            (answer, index) => `
+          <div class="answer" data-id="${Date.now() + index}">
+            <input 
+              type="text" 
+              name="answer-${questionId}-${index}" 
+              class="answer-text" 
+              value="${answer.text}" 
+              required>
             <label>
               <input type="${
                 question.question_type === "multiple" ? "checkbox" : "radio"
               }" 
-                     name="correct-${questionId}" 
-                     class="is-correct" 
-                     ${answer.is_correct ? "checked" : ""}>
+                name="correct-${questionId}" 
+                class="is-correct" 
+                ${answer.is_correct ? "checked" : ""}>
               Правильный
             </label>
             <button type="button" class="remove-answer">×</button>
@@ -508,23 +513,40 @@ class TestManager {
     const correctTextAnswer = questionEl.querySelector(".correct-text-answer");
 
     if (newType === "text") {
-      if (answersContainer) answersContainer.style.display = "none";
+      if (answersContainer) {
+        answersContainer.style.display = "none";
+        answersContainer
+          .querySelectorAll("input.answer-text")
+          .forEach((input) => {
+            input.required = false;
+          });
+      }
+
       if (!correctTextAnswer) {
         questionEl.insertAdjacentHTML(
           "beforeend",
           `
           <div class="form-group correct-text-answer">
             <label>Правильный текстовый ответ</label>
-            <input type="text" class="correct-text" required>
+            <input type="text" class="correct-text" required name="correct-text-${questionEl.dataset.id}">
           </div>
         `
         );
+      } else {
+        correctTextAnswer.style.display = "block";
+        correctTextAnswer.querySelector("input.correct-text").required = true;
       }
+
       questionEl.querySelector(".add-answer")?.remove();
     } else {
-      if (correctTextAnswer) correctTextAnswer.remove();
-
-      if (!answersContainer) {
+      if (answersContainer) {
+        answersContainer.style.display = "block";
+        answersContainer
+          .querySelectorAll("input.answer-text")
+          .forEach((input) => {
+            input.required = true;
+          });
+      } else {
         questionEl.insertAdjacentHTML(
           "beforeend",
           `
@@ -533,12 +555,16 @@ class TestManager {
         `
         );
         this.addAnswer(questionEl.dataset.id);
-      } else {
-        answersContainer.style.display = "block";
-        questionEl.querySelectorAll(".is-correct").forEach((input) => {
-          input.type = newType === "multiple" ? "checkbox" : "radio";
-          input.name = `correct-${questionEl.dataset.id}`;
-        });
+      }
+
+      questionEl.querySelectorAll(".is-correct").forEach((input) => {
+        input.type = newType === "multiple" ? "checkbox" : "radio";
+        input.name = `correct-${questionEl.dataset.id}`;
+      });
+
+      if (correctTextAnswer) {
+        correctTextAnswer.style.display = "none";
+        correctTextAnswer.querySelector("input.correct-text").required = false;
       }
     }
   }
@@ -613,7 +639,7 @@ class TestManager {
         </div>
         <div class="form-group"> 
           <label>Текст вопроса</label>
-          <textarea class="question-text" required></textarea>
+          <input class="question-text" required></input>
         </div>
         <div class="form-group">
           <label>Тип вопроса</label>
@@ -638,13 +664,19 @@ class TestManager {
     const questionEl = this.modal.querySelector(`[data-id="${questionId}"]`);
     const type = questionEl.dataset.type;
     const container = questionEl.querySelector(".answers-container");
+    const index = container.querySelectorAll(".answer").length;
     const answerId = Date.now();
 
     container.insertAdjacentHTML(
       "beforeend",
       `
       <div class="answer" data-id="${answerId}">
-        <input type="text" class="answer-text" placeholder="Текст ответа" required>
+        <input 
+          type="text" 
+          class="answer-text" 
+          name="answer-${questionId}-${index}" 
+          placeholder="Текст ответа" 
+          required>
         <label>
           <input type="${type === "multiple" ? "checkbox" : "radio"}" 
                  name="correct-${questionId}" 

@@ -167,10 +167,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
       if (question.question_type === "text") {
         answersContainer.innerHTML = `
-  <textarea class="text-answer" name="question_${question.id}" 
+  <input class="text-answer" name="question_${question.id}" 
             placeholder="Введите ответ" 
             required
-            maxlength="200"></textarea>
+            maxlength="200"></input>
   <div class="answer-hint">
   Ответ не больше (${question.correct_text_answer.length} симв.)
   </div>
@@ -218,7 +218,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
       if (question.question_type === "text") {
         const textAnswer = document
-          .querySelector(`textarea[name="question_${questionId}"]`)
+          .querySelector(`input[name="question_${questionId}"]`)
           .value.trim();
         answers.push({
           questionId: questionId,

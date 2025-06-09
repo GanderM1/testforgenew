@@ -235,12 +235,13 @@ button:hover {
 }
 
 .text-answer {
-  width: 20vw;
+  width: 90%;
   resize: none;
   font-size: 3vmin;
-  height: 1.5vmax;
-  display: flex;
-  align-items: center;
+  height: 2vmax;
+  border: solid 1px white;
+  border-radius: 6px;
+  padding: 0.1rem;
 }
 
 #studentStatsModal .modal-content {
