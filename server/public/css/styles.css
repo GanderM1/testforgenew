@@ -197,10 +197,10 @@ th {
 
 @media (max-width: 768px) {
   th.asc::after {
-    right: 0px;
+    right: 2px;
   }
 
   th.desc::after {
-    right: 0px;
+    right: 2px;
   }
 }
