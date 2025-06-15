@@ -194,3 +194,13 @@ th {
   position: relative;
   user-select: none;
 }
+
+@media (max-width: 768px) {
+  th.asc::after {
+    right: 0px;
+  }
+
+  th.desc::after {
+    right: 0px;
+  }
+}
