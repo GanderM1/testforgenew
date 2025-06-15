@@ -9,7 +9,6 @@ const morgan = require("morgan");
 const cookieParser = require("cookie-parser");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
-const fs = require("fs");
 const testsRouter = require("./routes/tests");
 
 const app = express();

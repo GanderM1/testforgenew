@@ -407,3 +407,102 @@ input[type="password"]::-webkit-textfield-decoration-container {
   align-items: center;
   justify-content: space-between;
 }
+
+@media (max-width: 768px) {
+  .admin-panel {
+    padding: 0.5rem;
+  }
+
+  th,
+  td {
+    padding: 0.5rem;
+    font-size: 0.9rem;
+  }
+
+  section button {
+    padding: 0.5rem;
+    font-size: 0.9rem;
+  }
+
+  .modal-content {
+    width: 95%;
+    padding: 0.5rem;
+  }
+
+  .form-group input,
+  .form-group textarea,
+  .form-group select {
+    width: 95%;
+    font-size: 1rem;
+  }
+
+  .stats-table-container {
+    max-height: 60vh;
+  }
+
+  .user-filter {
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .user-filter input {
+    width: 100%;
+  }
+
+  .user-filter button {
+    width: 100%;
+  }
+
+  .groups-list {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .question {
+    padding: 0.75rem;
+  }
+
+  .answer {
+    padding: 0.25rem 0;
+    flex-wrap: wrap;
+  }
+
+  .answer input[type="text"] {
+    width: 98%;
+  }
+
+  #user-form {
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 480px) {
+  th,
+  td {
+    padding: 0.3rem;
+    font-size: 0.8rem;
+  }
+
+  .full_admin {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  #groups-section {
+    flex-direction: column;
+  }
+
+  .create-group-form {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .question-text {
+    width: 85%;
+  }
+
+  .stats-summary {
+    flex-direction: column;
+    gap: 5px;
+  }
+}
