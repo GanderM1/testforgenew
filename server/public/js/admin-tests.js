@@ -972,7 +972,6 @@ class TestManager {
           <h3>Статистика теста</h3>
           <div class="user-filter">
             <input type="text" id="userSearch" placeholder="Поиск по имени пользователя...">
-            <button id="refreshStats">Обновить</button>
           </div>
           <div class="stats-table-container">
             <table class="stats-table">
